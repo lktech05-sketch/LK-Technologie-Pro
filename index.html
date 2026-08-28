@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="LK.Technologie Pro V12 — Solution complète de gestion pour magasins informatiques et ateliers de réparation.">
+  <title>LK.Technologie Pro V12 — Site officiel</title>
+  <style>
+    :root{
+      --navy:#071a35; --navy2:#0b2d59; --blue:#1769d2; --red:#e51b23;
+      --ink:#0f2035; --muted:#5e6d7f; --bg:#f4f7fb; --card:#fff;
+      --line:#dfe6ef; --shadow:0 18px 50px rgba(7,26,53,.12);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;font-family:Segoe UI,Arial,Tahoma,sans-serif;color:var(--ink);background:var(--bg)}
+    body[dir="rtl"]{font-family:Tahoma,Arial,sans-serif}
+    a{text-decoration:none;color:inherit}
+    .wrap{max-width:1180px;margin:auto;padding:0 24px}
+    header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800;color:var(--navy)}
+    .brand img{width:46px;height:46px;object-fit:contain;border-radius:10px}
+    .navlinks{display:flex;gap:22px;align-items:center;font-size:14px;font-weight:600}
+    .lang{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+    .hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:78px 0 64px;overflow:hidden}
+    .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:46px}
+    .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);padding:8px 12px;border-radius:999px;font-size:13px}
+    h1{font-size:54px;line-height:1.05;margin:18px 0 18px}
+    .hero p{font-size:20px;line-height:1.65;color:#d7e4f5;margin:0 0 28px}
+    .actions{display:flex;flex-wrap:wrap;gap:14px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 20px;border-radius:12px;font-weight:800;transition:.2s}
+    .btn-primary{background:var(--red);color:#fff;box-shadow:0 10px 28px rgba(229,27,35,.28)}
+    .btn-primary:hover{transform:translateY(-2px)}
+    .btn-secondary{border:1px solid rgba(255,255,255,.25);color:#fff;background:rgba(255,255,255,.07)}
+    .hero-card{background:#fff;border-radius:20px;padding:14px;box-shadow:0 30px 70px rgba(0,0,0,.25)}
+    .hero-card img{width:100%;display:block;border-radius:13px}
+    section{padding:72px 0}
+    .title{text-align:center;max-width:760px;margin:0 auto 36px}
+    .title h2{font-size:38px;margin:0 0 12px;color:var(--navy)}
+    .title p{color:var(--muted);font-size:17px;line-height:1.7;margin:0}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .feature{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 8px 24px rgba(15,32,53,.04)}
+    .icon{width:44px;height:44px;border-radius:12px;background:#eef5ff;color:var(--blue);display:grid;place-items:center;font-size:22px;margin-bottom:14px}
+    .feature h3{margin:0 0 9px;font-size:18px}
+    .feature p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}
+    .video-box{background:#061326;border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+    video{width:100%;display:block;border-radius:12px;background:#000}
+    .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+    .shot{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+    .shot img{width:100%;display:block;border-radius:10px}
+    .shot b{display:block;padding:12px 6px 4px;color:var(--navy)}
+    .download{background:linear-gradient(135deg,#fff,#eef5ff);border:1px solid #dbe7f6;border-radius:24px;padding:42px;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center;box-shadow:var(--shadow)}
+    .download h2{margin:0 0 10px;font-size:34px;color:var(--navy)}
+    .download p{margin:0;color:var(--muted);line-height:1.7}
+    .specs{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .pill{background:#fff;border:1px solid var(--line);padding:8px 11px;border-radius:999px;font-size:13px;font-weight:700}
+    footer{background:#05152d;color:#d8e2ef;padding:38px 0}
+    .foot{display:flex;justify-content:space-between;gap:20px;align-items:center}
+    .foot small{color:#91a3b8}
+    .contact{display:flex;gap:20px;flex-wrap:wrap}
+    @media(max-width:900px){
+      .hero-grid,.download{grid-template-columns:1fr}.hero{padding-top:52px}.hero-card{order:-1}
+      h1{font-size:42px}.features{grid-template-columns:1fr 1fr}.navlinks a{display:none}
+    }
+    @media(max-width:620px){
+      .wrap{padding:0 16px}.features,.gallery{grid-template-columns:1fr}
+      h1{font-size:34px}.title h2{font-size:30px}.hero p{font-size:17px}
+      .download{padding:28px}.download h2{font-size:28px}.foot{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="#">
+        <img src="assets/logo.png" alt="LK.Technologie">
+        <span>LK.Technologie Pro V12</span>
+      </a>
+      <div class="navlinks">
+        <a href="#features" data-fr="Fonctions" data-ar="الوظائف">Fonctions</a>
+        <a href="#video" data-fr="Vidéo" data-ar="الفيديو">Vidéo</a>
+        <a href="#screens" data-fr="Captures" data-ar="الصور">Captures</a>
+        <a href="#download" data-fr="Télécharger" data-ar="تحميل">Télécharger</a>
+        <button class="lang" id="langBtn">العربية</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="badge" data-fr="● Version officielle V12" data-ar="● النسخة الرسمية V12">● Version officielle V12</span>
+      <h1 data-fr="Gérez tout votre magasin et atelier depuis un seul logiciel."
+          data-ar="أدِر متجرك وورشة الصيانة بالكامل من برنامج واحد.">
+          Gérez tout votre magasin et atelier depuis un seul logiciel.
+      </h1>
+      <p data-fr="Vente, stock, achats, fournisseurs, clients, atelier de réparation, caisse, finance et rapports — dans une interface professionnelle pensée pour l'activité informatique."
+         data-ar="المبيعات، المخزون، المشتريات، الموردون، الزبائن، ورشة الصيانة، الصندوق، المالية والتقارير — في واجهة احترافية مصممة لنشاط الإعلام الآلي.">
+         Vente, stock, achats, fournisseurs, clients, atelier de réparation, caisse, finance et rapports — dans une interface professionnelle pensée pour l'activité informatique.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#download" data-fr="⬇ Télécharger V12" data-ar="⬇ تحميل V12">⬇ Télécharger V12</a>
+        <a class="btn btn-secondary" href="#video" data-fr="▶ Voir la présentation" data-ar="▶ مشاهدة العرض">▶ Voir la présentation</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <img src="assets/dashboard.png" alt="Dashboard réel de LK.Technologie Pro V12">
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="title">
+      <h2 data-fr="Une solution complète" data-ar="حل متكامل">Une solution complète</h2>
+      <p data-fr="Les principaux outils nécessaires pour piloter quotidiennement votre activité."
+         data-ar="أهم الأدوات اللازمة لتسيير نشاطك اليومي من مكان واحد.">
+         Les principaux outils nécessaires pour piloter quotidiennement votre activité.
+      </p>
+    </div>
+    <div class="features">
+      <article class="feature"><div class="icon">🛒</div><h3 data-fr="Point de vente" data-ar="نقطة البيع">Point de vente</h3><p data-fr="Ventes, code-barres, détail et gros, paiements et suivi de caisse." data-ar="المبيعات، الباركود، التجزئة والجملة، المدفوعات ومتابعة الصندوق.">Ventes, code-barres, détail et gros, paiements et suivi de caisse.</p></article>
+      <article class="feature"><div class="icon">🧰</div><h3 data-fr="Atelier de réparation" data-ar="ورشة الصيانة">Atelier de réparation</h3><p data-fr="Suivi des appareils depuis la réception jusqu'à la livraison." data-ar="متابعة الأجهزة من الاستقبال إلى غاية التسليم.">Suivi des appareils depuis la réception jusqu'à la livraison.</p></article>
+      <article class="feature"><div class="icon">📦</div><h3 data-fr="Stock & achats" data-ar="المخزون والمشتريات">Stock & achats</h3><p data-fr="Produits, inventaire, achats, fournisseurs, retours et mouvements." data-ar="المنتجات، الجرد، المشتريات، الموردون، المرتجعات وحركة المخزون.">Produits, inventaire, achats, fournisseurs, retours et mouvements.</p></article>
+      <article class="feature"><div class="icon">👥</div><h3 data-fr="Clients & fournisseurs" data-ar="الزبائن والموردون">Clients & fournisseurs</h3><p data-fr="Soldes, dettes, règlements, historiques et situations détaillées." data-ar="الأرصدة، الديون، التسديدات، السجل والوضعيات التفصيلية.">Soldes, dettes, règlements, historiques et situations détaillées.</p></article>
+      <article class="feature"><div class="icon">💳</div><h3 data-fr="Caisse & finance" data-ar="الصندوق والمالية">Caisse & finance</h3><p data-fr="Encaissements, dépenses, financement et clôtures journalières." data-ar="المقبوضات، المصاريف، التمويل والإغلاق اليومي.">Encaissements, dépenses, financement et clôtures journalières.</p></article>
+      <article class="feature"><div class="icon">📊</div><h3 data-fr="Rapports & statistiques" data-ar="التقارير والإحصائيات">Rapports & statistiques</h3><p data-fr="Une vision claire des ventes, de l'atelier, du stock et des finances." data-ar="رؤية واضحة للمبيعات، الصيانة، المخزون والمالية.">Une vision claire des ventes, de l'atelier, du stock et des finances.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="video">
+  <div class="wrap">
+    <div class="title">
+      <h2 data-fr="Découvrez LK.Technologie Pro V12" data-ar="اكتشف LK.Technologie Pro V12">Découvrez LK.Technologie Pro V12</h2>
+      <p data-fr="Présentation réalisée uniquement à partir d'écrans réels du logiciel."
+         data-ar="عرض تم إنشاؤه باستعمال واجهات حقيقية من البرنامج فقط.">
+         Présentation réalisée uniquement à partir d'écrans réels du logiciel.
+      </p>
+    </div>
+    <div class="video-box">
+      <video controls preload="metadata" poster="assets/dashboard.png">
+        <source src="assets/publicite-v12.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="title"><h2 data-fr="Aperçu réel du logiciel" data-ar="صور حقيقية من البرنامج">Aperçu réel du logiciel</h2></div>
+    <div class="gallery">
+      <div class="shot"><img src="assets/pos.png" alt="Point de vente"><b data-fr="Point de vente / POS" data-ar="نقطة البيع">Point de vente / POS</b></div>
+      <div class="shot"><img src="assets/atelier.png" alt="Atelier"><b data-fr="Atelier & appareils" data-ar="الورشة والأجهزة">Atelier & appareils</b></div>
+      <div class="shot"><img src="assets/stock.png" alt="Stock"><b data-fr="Stock & achats" data-ar="المخزون والمشتريات">Stock & achats</b></div>
+      <div class="shot"><img src="assets/clients.png" alt="Clients"><b data-fr="Clients & finance" data-ar="الزبائن والمالية">Clients & finance</b></div>
+      <div class="shot"><img src="assets/rapports.png" alt="Rapports"><b data-fr="Rapports" data-ar="التقارير">Rapports</b></div>
+      <div class="shot"><img src="assets/dashboard.png" alt="Dashboard"><b data-fr="Tableau de bord" data-ar="لوحة التحكم">Tableau de bord</b></div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <div class="download">
+      <div>
+        <h2 data-fr="Télécharger LK.Technologie Pro V12" data-ar="تحميل LK.Technologie Pro V12">Télécharger LK.Technologie Pro V12</h2>
+        <p data-fr="Téléchargez la version Windows officielle depuis la page Releases. Le code source, les outils privés et les clés d'activation ne sont jamais distribués."
+           data-ar="حمّل نسخة Windows الرسمية من صفحة Releases. لا يتم توزيع الكود المصدري أو الأدوات الخاصة أو مفاتيح التفعيل.">
+           Téléchargez la version Windows officielle depuis la page Releases. Le code source, les outils privés et les clés d'activation ne sont jamais distribués.
+        </p>
+        <div class="specs">
+          <span class="pill">Windows</span>
+          <span class="pill">Version V12</span>
+          <span class="pill" data-fr="Installation guidée" data-ar="تثبيت سهل">Installation guidée</span>
+          <span class="pill" data-fr="Activation requise" data-ar="يتطلب التفعيل">Activation requise</span>
+        </div>
+      </div>
+      <a class="btn btn-primary" href="https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/latest" target="_blank" rel="noopener" data-fr="⬇ Télécharger V12" data-ar="⬇ تحميل V12">⬇ Télécharger V12</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <strong>LK.Technologie</strong><br>
+      <small>© 2026 LK.Technologie — LK.Technologie Pro V12</small>
+    </div>
+    <div class="contact">
+      <span>☎ 0672 47 74 80</span>
+      <span>✉ LK.Technologie@yahoo.fr</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const btn=document.getElementById('langBtn');
+  let ar=false;
+  btn.addEventListener('click',()=>{
+    ar=!ar;
+    document.documentElement.lang=ar?'ar':'fr';
+    document.body.dir=ar?'rtl':'ltr';
+    document.querySelectorAll('[data-fr]').forEach(el=>{
+      el.textContent=ar?el.dataset.ar:el.dataset.fr;
+    });
+    btn.textContent=ar?'Français':'العربية';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "product": "LK.Technologie Pro",
+  "channel": "stable",
+  "version": "12.1",
+  "minimum_version": "12.1",
+  "notes": {
+    "fr": "Version officielle 12.1. Interface modernisée et améliorations de la gestion de stock, de l’atelier et du POS.",
+    "ar": "الإصدار الرسمي 12.1. واجهة محدّثة وتحسينات تسيير المخزون والورشة ونقطة البيع.",
+    "en": "Official version 12.1. Modernized interface and improvements to inventory, workshop and POS."
+  },
+  "installer": {
+    "url": "https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.1/LK_Technologie_Pro_V12_1_Setup.exe",
+    "size_bytes": 189341248,
+    "sha256": "8ff519ff241ae64eda68e51dfdabc750033e7ff2164806bc038803086b216554"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "service": "LK.Technologie Pro",
+  "protocol": "LK-ACTIVATION-1",
+  "purpose": "static-file-delivery-check",
+  "is_license": false
+}

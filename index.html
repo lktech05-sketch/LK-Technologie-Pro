@@ -2,9 +2,10 @@
 <html lang="fr" dir="ltr">
 <head>
   <meta charset="utf-8">
+  <link rel="icon" type="image/png" href="assets/v12-1/logo.png">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="LK.Technologie Pro V12 — Solution complète de gestion pour magasins informatiques et ateliers de réparation.">
-  <title>LK.Technologie Pro V12 — Site officiel</title>
+  <meta name="description" content="LK.Technologie Pro V12.1 — Solution complète de gestion pour magasins informatiques et ateliers de réparation.">
+  <title>LK.Technologie Pro V12.1 — Site officiel</title>
   <style>
     :root{
       --navy:#071a35; --navy2:#0b2d59; --blue:#1769d2; --red:#e51b23;
@@ -68,6 +69,28 @@
       h1{font-size:34px}.title h2{font-size:30px}.hero p{font-size:17px}
       .download{padding:28px}.download h2{font-size:28px}.foot{flex-direction:column;align-items:flex-start}
     }
+
+    /* V12.1 media update — retain the official site’s navy/red identity. */
+    body{font-size:16px}button{font:inherit}img{max-width:100%;height:auto}section[id]{scroll-margin-top:94px}
+    .brand span{font-size:16px}.navlinks{gap:16px}.feature p{font-size:16px;line-height:1.65}
+    .hero-card{min-width:0}.hero-card img{height:auto}.badge{font-size:14px}
+    .section-label{display:block;color:#5946dc;font-size:14px;font-weight:800;letter-spacing:.1em;margin-bottom:12px}
+    #guides{background:#edf0f9;border-block:1px solid #e1e5ef}.lessons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+    .lesson{overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 24px #0f203508;min-width:0;scroll-margin-top:94px}
+    .lesson-top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px}.lesson-number{background:#ece8ff;color:#5946dc;border-radius:10px;padding:8px 12px;font-weight:800}.lesson-duration{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;direction:ltr}
+    .lesson video{border-radius:0;aspect-ratio:1920/1160;object-fit:contain}.lesson-body{padding:20px 22px 24px}.lesson-kicker{font-size:14px!important;color:#5946dc!important;font-weight:700;margin:0 0 8px!important}
+    .lesson h3{font-size:21px;color:var(--navy);margin:0 0 10px;line-height:1.4}.lesson p{font-size:16px;line-height:1.6;color:var(--muted);margin:0 0 18px}.lesson-download{font-size:15px;color:#4b35c0;font-weight:700;text-decoration:underline;text-underline-offset:4px}
+    .shot{margin:0;overflow:hidden}.shot img{aspect-ratio:16/10;object-fit:contain;background:#f7f8fc}.shot figcaption{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 6px 5px}.shot b{padding:0;line-height:1.5}.shot figcaption span{font-size:14px;color:#5946dc;white-space:nowrap}.zoom-shot{display:block}
+    .media-note{text-align:center;margin:18px 0 0;color:var(--muted);font-size:14px}
+    :focus-visible{outline:3px solid #7964ff;outline-offset:4px}
+    dialog{padding:14px;max-width:min(96vw,1700px);width:max-content;max-height:94vh;border:0;border-radius:16px;box-shadow:0 24px 80px #0005;background:#fff;color:var(--ink)}dialog::backdrop{background:#061326d9}
+    .viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 4px 12px}.viewer-bar p{margin:0;font-weight:700}.viewer-close{padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#f4f2ff;cursor:pointer}.viewer-image{display:block;max-height:calc(94vh - 92px);width:auto;object-fit:contain;margin:auto}
+    body[dir="rtl"] .section-label{letter-spacing:0}body[dir="rtl"] h1{line-height:1.35}
+    @media(max-width:1050px){.navlinks{gap:12px}.brand span{max-width:190px}.hero-grid{gap:28px}h1{font-size:46px}}
+    @media(max-width:900px){nav{height:auto;min-height:76px;flex-wrap:wrap;padding:12px 0;gap:12px}.navlinks{width:100%;justify-content:flex-start;flex-wrap:wrap;gap:10px 18px}.navlinks a{display:inline-block}.navlinks .lang{margin-inline-start:auto}.hero-grid{gap:28px}h1{font-size:40px}section[id],.lesson{scroll-margin-top:150px}}
+    @media(max-width:620px){.lessons{grid-template-columns:1fr}.navlinks a{font-size:14px}.hero h1{font-size:34px}.hero{padding-top:32px}.lesson-body{padding:18px}.shot figcaption{align-items:flex-start}.brand span{max-width:none}section{padding:52px 0}.download .btn{width:100%}.contact{overflow-wrap:anywhere}.navlinks .lang{margin-inline-start:0}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+
   </style>
 </head>
 <body>
@@ -75,16 +98,17 @@
   <div class="wrap">
     <nav>
       <a class="brand" href="#">
-        <img src="logo.png" alt="LK.Technologie">
-        <span>LK.Technologie Pro V12</span>
+        <img src="assets/v12-1/logo.png" alt="LK.Technologie">
+        <span>LK.Technologie Pro V12.1</span>
       </a>
       <div class="navlinks">
         <a href="#features" data-fr="Fonctions" data-ar="الوظائف">Fonctions</a>
         <a href="#video" data-fr="Vidéo" data-ar="الفيديو">Vidéo</a>
+        <a href="#guides" data-fr="Guide vidéo" data-ar="دليل الفيديو">Guide vidéo</a>
         <a href="#screens" data-fr="Captures" data-ar="الصور">Captures</a>
         <a href="#purchase" data-fr="Acheter" data-ar="شراء">Acheter</a>
         <a href="#download" data-fr="Télécharger" data-ar="تحميل">Télécharger</a>
-        <button class="lang" id="langBtn">العربية</button>
+        <button class="lang" id="langBtn" type="button" aria-label="Changer de langue / تغيير اللغة">العربية</button>
       </div>
     </nav>
   </div>
@@ -94,7 +118,7 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <span class="badge" data-fr="● Version officielle V12" data-ar="● النسخة الرسمية V12">● Version officielle V12</span>
+      <span class="badge" data-fr="Nouvelle interface · V12.1" data-ar="الواجهة الجديدة · V12.1">Nouvelle interface · V12.1</span>
       <h1 data-fr="Gérez tout votre magasin et atelier depuis un seul logiciel."
           data-ar="أدِر متجرك وورشة الصيانة بالكامل من برنامج واحد.">
           Gérez tout votre magasin et atelier depuis un seul logiciel.
@@ -109,7 +133,7 @@
       </div>
     </div>
     <div class="hero-card">
-      <img src="dashboard.png" alt="Dashboard réel de LK.Technologie Pro V12">
+      <img src="assets/v12-1/screens/dashboard.png" width="1600" height="900" fetchpriority="high" alt="Dashboard réel de LK.Technologie Pro V12.1">
     </div>
   </div>
 </section>
@@ -137,30 +161,119 @@
 <section id="video">
   <div class="wrap">
     <div class="title">
-      <h2 data-fr="Découvrez LK.Technologie Pro V12" data-ar="اكتشف LK.Technologie Pro V12">Découvrez LK.Technologie Pro V12</h2>
+      <h2 data-fr="Découvrez LK.Technologie Pro V12.1" data-ar="اكتشف LK.Technologie Pro V12.1">Découvrez LK.Technologie Pro V12.1</h2>
       <p data-fr="Présentation réalisée uniquement à partir d'écrans réels du logiciel."
          data-ar="عرض تم إنشاؤه باستعمال واجهات حقيقية من البرنامج فقط.">
          Présentation réalisée uniquement à partir d'écrans réels du logiciel.
       </p>
     </div>
     <div class="video-box">
-      <video controls preload="metadata" poster="dashboard.png">
-        <source src="publicite-v12.mp4" type="video/mp4">
+      <video controls playsinline preload="none" aria-label="Présentation de LK.Technologie Pro V12.1" poster="assets/v12-1/thumbs/publicite.jpg">
+        <source src="assets/v12-1/videos/publicite-v12-1.mp4" type="video/mp4">
       </video>
     </div>
   </div>
 </section>
 
+<section id="guides"><div class="wrap">
+ <div class="title"><span class="section-label" data-fr="APPRENDRE PAS À PAS" data-ar="تعلّم خطوة بخطوة">APPRENDRE PAS À PAS</span>
+ <h2 data-fr="Le guide en vidéo" data-ar="دليل الاستخدام بالفيديو">Le guide en vidéo</h2>
+ <p data-fr="8 leçons pour découvrir l’interface et suivre le parcours de réparation, de la réception à la livraison. Voix arabe, sous-titres français."
+ data-ar="8 دروس للتعرف على الواجهة ومتابعة مسار الصيانة من استقبال الجهاز إلى تسليمه. صوت عربي وترجمة فرنسية.">8 leçons pour découvrir l’interface et suivre le parcours de réparation, de la réception à la livraison. Voix arabe, sous-titres français.</p></div>
+ <div class="lessons"><article class="lesson" id="guide-01">
+ <div class="lesson-top"><span class="lesson-number">01</span><span class="lesson-duration" aria-label="73 secondes">1:13</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-01.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #01 — Présentation générale" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #01 — Présentation générale" data-video-title-ar="دليل الاستخدام 01 — تقديم عام للبرنامج">
+ <source src="assets/v12-1/videos/guide-01.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-01.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #01" data-ar="دليل الاستخدام #01">Guide d’utilisation #01</p>
+ <h3 data-fr="Présentation générale" data-ar="تقديم عام للبرنامج">Présentation générale</h3>
+ <p data-fr="Découvrez le démarrage et la navigation dans la nouvelle interface." data-ar="تعرّف على تشغيل البرنامج والتنقل في الواجهة الجديدة.">Découvrez le démarrage et la navigation dans la nouvelle interface.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-01.mp4" download="LK_Technologie_Guide_01.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-02">
+ <div class="lesson-top"><span class="lesson-number">02</span><span class="lesson-duration" aria-label="126 secondes">2:06</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-02.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #02 — Gestion des clients" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #02 — Gestion des clients" data-video-title-ar="دليل الاستخدام 02 — إدارة الزبائن">
+ <source src="assets/v12-1/videos/guide-02.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-02.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #02" data-ar="دليل الاستخدام #02">Guide d’utilisation #02</p>
+ <h3 data-fr="Gestion des clients" data-ar="إدارة الزبائن">Gestion des clients</h3>
+ <p data-fr="Créez et retrouvez les fiches de vos clients." data-ar="إنشاء بطاقات الزبائن والبحث عنها.">Créez et retrouvez les fiches de vos clients.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-02.mp4" download="LK_Technologie_Guide_02.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-03">
+ <div class="lesson-top"><span class="lesson-number">03</span><span class="lesson-duration" aria-label="161 secondes">2:41</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-03.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #03 — Réception d’un nouvel appareil" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #03 — Réception d’un nouvel appareil" data-video-title-ar="دليل الاستخدام 03 — استقبال جهاز جديد">
+ <source src="assets/v12-1/videos/guide-03.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-03.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #03" data-ar="دليل الاستخدام #03">Guide d’utilisation #03</p>
+ <h3 data-fr="Réception d’un nouvel appareil" data-ar="استقبال جهاز جديد">Réception d’un nouvel appareil</h3>
+ <p data-fr="Enregistrez un appareil et les informations nécessaires à sa prise en charge." data-ar="تسجيل الجهاز ومعلومات استقباله في الورشة.">Enregistrez un appareil et les informations nécessaires à sa prise en charge.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-03.mp4" download="LK_Technologie_Guide_03.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-04">
+ <div class="lesson-top"><span class="lesson-number">04</span><span class="lesson-duration" aria-label="95 secondes">1:35</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-04.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #04 — Diagnostic de l’appareil" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #04 — Diagnostic de l’appareil" data-video-title-ar="دليل الاستخدام 04 — تشخيص الجهاز">
+ <source src="assets/v12-1/videos/guide-04.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-04.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #04" data-ar="دليل الاستخدام #04">Guide d’utilisation #04</p>
+ <h3 data-fr="Diagnostic de l’appareil" data-ar="تشخيص الجهاز">Diagnostic de l’appareil</h3>
+ <p data-fr="Renseignez le diagnostic dans le suivi de maintenance." data-ar="تسجيل التشخيص في ملف الصيانة.">Renseignez le diagnostic dans le suivi de maintenance.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-04.mp4" download="LK_Technologie_Guide_04.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-05">
+ <div class="lesson-top"><span class="lesson-number">05</span><span class="lesson-duration" aria-label="129 secondes">2:09</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-05.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #05 — Réparation de l’appareil" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #05 — Réparation de l’appareil" data-video-title-ar="دليل الاستخدام 05 — مرحلة الإصلاح">
+ <source src="assets/v12-1/videos/guide-05.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-05.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #05" data-ar="دليل الاستخدام #05">Guide d’utilisation #05</p>
+ <h3 data-fr="Réparation de l’appareil" data-ar="مرحلة الإصلاح">Réparation de l’appareil</h3>
+ <p data-fr="Suivez les travaux effectués et l’avancement de la réparation." data-ar="متابعة الأعمال المنجزة وتقدم عملية الإصلاح.">Suivez les travaux effectués et l’avancement de la réparation.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-05.mp4" download="LK_Technologie_Guide_05.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-06">
+ <div class="lesson-top"><span class="lesson-number">06</span><span class="lesson-duration" aria-label="82 secondes">1:22</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-06.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #06 — Prêt à livrer" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #06 — Prêt à livrer" data-video-title-ar="دليل الاستخدام 06 — جاهز للتسليم">
+ <source src="assets/v12-1/videos/guide-06.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-06.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #06" data-ar="دليل الاستخدام #06">Guide d’utilisation #06</p>
+ <h3 data-fr="Prêt à livrer" data-ar="جاهز للتسليم">Prêt à livrer</h3>
+ <p data-fr="Préparez la remise de l’appareil et vérifiez le règlement." data-ar="تحضير تسليم الجهاز ومراجعة التسديد.">Préparez la remise de l’appareil et vérifiez le règlement.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-06.mp4" download="LK_Technologie_Guide_06.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-07">
+ <div class="lesson-top"><span class="lesson-number">07</span><span class="lesson-duration" aria-label="141 secondes">2:21</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-07.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #07 — Livraison au client" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #07 — Livraison au client" data-video-title-ar="دليل الاستخدام 07 — تسليم الجهاز للزبون">
+ <source src="assets/v12-1/videos/guide-07.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-07.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #07" data-ar="دليل الاستخدام #07">Guide d’utilisation #07</p>
+ <h3 data-fr="Livraison au client" data-ar="تسليم الجهاز للزبون">Livraison au client</h3>
+ <p data-fr="Finalisez la remise de l’appareil au client." data-ar="إتمام تسليم الجهاز إلى الزبون.">Finalisez la remise de l’appareil au client.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-07.mp4" download="LK_Technologie_Guide_07.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-08">
+ <div class="lesson-top"><span class="lesson-number">08</span><span class="lesson-duration" aria-label="153 secondes">2:33</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/thumbs/guide-08.jpg" aria-label="LK.Technologie Pro | Guide d’utilisation #08 — Gestion des dossiers de maintenance" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #08 — Gestion des dossiers de maintenance" data-video-title-ar="دليل الاستخدام 08 — إدارة ملفات الصيانة">
+ <source src="assets/v12-1/videos/guide-08.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-08.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #08" data-ar="دليل الاستخدام #08">Guide d’utilisation #08</p>
+ <h3 data-fr="Gestion des dossiers de maintenance" data-ar="إدارة ملفات الصيانة">Gestion des dossiers de maintenance</h3>
+ <p data-fr="Retrouvez et consultez vos dossiers de maintenance." data-ar="البحث عن ملفات الصيانة والاطلاع عليها.">Retrouvez et consultez vos dossiers de maintenance.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-08.mp4" download="LK_Technologie_Guide_08.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article></div>
+ </div></section>
+
 <section id="screens">
   <div class="wrap">
     <div class="title"><h2 data-fr="Aperçu réel du logiciel" data-ar="صور حقيقية من البرنامج">Aperçu réel du logiciel</h2></div>
     <div class="gallery">
-      <div class="shot"><img src="pos.png" alt="Point de vente"><b data-fr="Point de vente / POS" data-ar="نقطة البيع">Point de vente / POS</b></div>
-      <div class="shot"><img src="atelier.png" alt="Atelier"><b data-fr="Atelier & appareils" data-ar="الورشة والأجهزة">Atelier & appareils</b></div>
-      <div class="shot"><img src="stock.png" alt="Stock"><b data-fr="Stock & achats" data-ar="المخزون والمشتريات">Stock & achats</b></div>
-      <div class="shot"><img src="clients.png" alt="Clients"><b data-fr="Clients & finance" data-ar="الزبائن والمالية">Clients & finance</b></div>
-      <div class="shot"><img src="rapports.png" alt="Rapports"><b data-fr="Rapports" data-ar="التقارير">Rapports</b></div>
-      <div class="shot"><img src="dashboard.png" alt="Dashboard"><b data-fr="Tableau de bord" data-ar="لوحة التحكم">Tableau de bord</b></div>
+<figure class="shot"><a href="assets/v12-1/screens/dashboard.png" class="zoom-shot" aria-label="Agrandir : Tableau de bord"><img src="assets/v12-1/screens/dashboard.png" alt="Tableau de bord — interface réelle de LK.Technologie Pro" width="1600" height="900" loading="lazy" decoding="async"></a><figcaption><b data-fr="Tableau de bord" data-ar="لوحة التحكم">Tableau de bord</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/pos.png" class="zoom-shot" aria-label="Agrandir : Point de vente / POS"><img src="assets/v12-1/screens/pos.png" alt="Point de vente / POS — interface réelle de LK.Technologie Pro" width="1400" height="850" loading="lazy" decoding="async"></a><figcaption><b data-fr="Point de vente / POS" data-ar="نقطة البيع">Point de vente / POS</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/reception.png" class="zoom-shot" aria-label="Agrandir : Réception d’un appareil"><img src="assets/v12-1/screens/reception.png" alt="Réception d’un appareil — interface réelle de LK.Technologie Pro" width="1600" height="900" loading="lazy" decoding="async"></a><figcaption><b data-fr="Réception d’un appareil" data-ar="استقبال جهاز">Réception d’un appareil</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/atelier.png" class="zoom-shot" aria-label="Agrandir : Suivi de l’atelier"><img src="assets/v12-1/screens/atelier.png" alt="Suivi de l’atelier — interface réelle de LK.Technologie Pro" width="1400" height="850" loading="lazy" decoding="async"></a><figcaption><b data-fr="Suivi de l’atelier" data-ar="متابعة الورشة">Suivi de l’atelier</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/clients.png" class="zoom-shot" aria-label="Agrandir : Gestion des clients"><img src="assets/v12-1/screens/clients.png" alt="Gestion des clients — interface réelle de LK.Technologie Pro" width="1400" height="850" loading="lazy" decoding="async"></a><figcaption><b data-fr="Gestion des clients" data-ar="إدارة الزبائن">Gestion des clients</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/fournisseurs.png" class="zoom-shot" aria-label="Agrandir : Fournisseurs &amp; achats"><img src="assets/v12-1/screens/fournisseurs.png" alt="Fournisseurs &amp; achats — interface réelle de LK.Technologie Pro" width="1400" height="850" loading="lazy" decoding="async"></a><figcaption><b data-fr="Fournisseurs &amp; achats" data-ar="الموردون والمشتريات">Fournisseurs & achats</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/caisse.png" class="zoom-shot" aria-label="Agrandir : Caisse &amp; clôture journalière"><img src="assets/v12-1/screens/caisse.png" alt="Caisse &amp; clôture journalière — interface réelle de LK.Technologie Pro" width="1113" height="816" loading="lazy" decoding="async"></a><figcaption><b data-fr="Caisse &amp; clôture journalière" data-ar="الصندوق والإغلاق اليومي">Caisse & clôture journalière</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
+<figure class="shot"><a href="assets/v12-1/screens/splash.png" class="zoom-shot" aria-label="Agrandir : Démarrage V12.1"><img src="assets/v12-1/screens/splash.png" alt="Démarrage V12.1 — interface réelle de LK.Technologie Pro" width="850" height="580" loading="lazy" decoding="async"></a><figcaption><b data-fr="Démarrage V12.1" data-ar="شاشة بدء V12.1">Démarrage V12.1</b><span data-fr="Agrandir ↗" data-ar="تكبير ↗">Agrandir ↗</span></figcaption></figure>
     </div>
   </div>
 </section>
@@ -176,12 +289,12 @@
       </p>
     </div>
     <div class="features">
-      <article class="feature"><div class="icon">1️⃣</div><h3 data-fr="Télécharger" data-ar="تحميل">Télécharger</h3><p data-fr="Téléchargez le Setup officiel V12 depuis ce site." data-ar="حمّل ملف التثبيت الرسمي V12 من هذا الموقع.">Téléchargez le Setup officiel V12 depuis ce site.</p></article>
+      <article class="feature"><div class="icon">1️⃣</div><h3 data-fr="Télécharger" data-ar="تحميل">Télécharger</h3><p data-fr="Téléchargez la version Windows disponible ci-dessous." data-ar="حمّل نسخة Windows المتاحة أدناه.">Téléchargez la version Windows disponible ci-dessous.</p></article>
       <article class="feature"><div class="icon">2️⃣</div><h3 data-fr="Installer" data-ar="تثبيت">Installer</h3><p data-fr="Lancez le Setup et suivez l'assistant d'installation Windows." data-ar="شغّل ملف Setup واتبع خطوات التثبيت على Windows.">Lancez le Setup et suivez l'assistant d'installation Windows.</p></article>
       <article class="feature"><div class="icon">3️⃣</div><h3 data-fr="Activer" data-ar="تفعيل">Activer</h3><p data-fr="Contactez LK.Technologie pour acheter votre licence et finaliser l'activation." data-ar="تواصل مع LK.Technologie لشراء الرخصة وإتمام التفعيل.">Contactez LK.Technologie pour acheter votre licence et finaliser l'activation.</p></article>
     </div>
     <div style="text-align:center;margin-top:28px">
-      <a class="btn btn-primary" href="https://wa.me/213672477480?text=Bonjour%20LK.Technologie%2C%20je%20souhaite%20acheter%20LK.Technologie%20Pro%20V12." target="_blank" rel="noopener"
+      <a class="btn btn-primary" href="https://wa.me/213672477480?text=Bonjour%20LK.Technologie%2C%20je%20souhaite%20acheter%20LK.Technologie%20Pro%20V12.1." target="_blank" rel="noopener"
          data-fr="💬 Demander le prix sur WhatsApp" data-ar="💬 اطلب السعر عبر واتساب">💬 Demander le prix sur WhatsApp</a>
     </div>
   </div>
@@ -197,7 +310,7 @@
       </p>
     </div>
     <div class="features">
-      <article class="feature"><div class="icon">🖥️</div><h3 data-fr="Quel système ?" data-ar="ما هو النظام المطلوب؟">Quel système ?</h3><p data-fr="LK.Technologie Pro V12 est destiné à Windows 10 et Windows 11." data-ar="برنامج LK.Technologie Pro V12 مخصص لـ Windows 10 وWindows 11.">LK.Technologie Pro V12 est destiné à Windows 10 et Windows 11.</p></article>
+      <article class="feature"><div class="icon">🖥️</div><h3 data-fr="Quel système ?" data-ar="ما هو النظام المطلوب؟">Quel système ?</h3><p data-fr="LK.Technologie Pro V12.1 est destiné à Windows 10 et Windows 11." data-ar="برنامج LK.Technologie Pro V12.1 مخصص لـ Windows 10 وWindows 11.">LK.Technologie Pro V12.1 est destiné à Windows 10 et Windows 11.</p></article>
       <article class="feature"><div class="icon">🔐</div><h3 data-fr="L'activation est-elle requise ?" data-ar="هل التفعيل مطلوب؟">L'activation est-elle requise ?</h3><p data-fr="Oui. Après installation, une activation est nécessaire pour utiliser la version officielle." data-ar="نعم. بعد التثبيت يلزم التفعيل لاستخدام النسخة الرسمية.">Oui. Après installation, une activation est nécessaire pour utiliser la version officielle.</p></article>
       <article class="feature"><div class="icon">🌐</div><h3 data-fr="Le téléchargement est-il direct ?" data-ar="هل التحميل مباشر؟">Le téléchargement est-il direct ?</h3><p data-fr="Oui. Le bouton Télécharger V12 lance directement le téléchargement du Setup officiel." data-ar="نعم. زر تحميل V12 يبدأ تنزيل ملف Setup الرسمي مباشرة.">Oui. Le bouton Télécharger V12 lance directement le téléchargement du Setup officiel.</p></article>
       <article class="feature"><div class="icon">🧾</div><h3 data-fr="Que gère le logiciel ?" data-ar="ماذا يدير البرنامج؟">Que gère le logiciel ?</h3><p data-fr="Ventes, stock, achats, atelier, clients, fournisseurs, caisse, finance, rapports et impressions." data-ar="المبيعات، المخزون، المشتريات، الورشة، الزبائن، الموردون، الصندوق، المالية، التقارير والطباعة.">Ventes, stock, achats, atelier, clients, fournisseurs, caisse, finance, rapports et impressions.</p></article>
@@ -211,10 +324,10 @@
   <div class="wrap">
     <div class="download">
       <div>
-        <h2 data-fr="Télécharger LK.Technologie Pro V12" data-ar="تحميل LK.Technologie Pro V12">Télécharger LK.Technologie Pro V12</h2>
-        <p data-fr="Téléchargez la version Windows officielle depuis la page Releases. Le code source, les outils privés et les clés d'activation ne sont jamais distribués."
-           data-ar="حمّل نسخة Windows الرسمية من صفحة Releases. لا يتم توزيع الكود المصدري أو الأدوات الخاصة أو مفاتيح التفعيل.">
-           Téléchargez la version Windows officielle depuis la page Releases. Le code source, les outils privés et les clés d'activation ne sont jamais distribués.
+        <h2 data-fr="Télécharger LK.Technologie Pro" data-ar="تحميل LK.Technologie Pro">Télécharger LK.Technologie Pro</h2>
+        <p data-fr="Le téléchargement disponible est actuellement la version V12 pour Windows. L’installeur V12.1 sera proposé ici après sa publication."
+           data-ar="النسخة المتاحة للتحميل حالياً هي V12 لنظام Windows. سيتوفر ملف تثبيت V12.1 هنا بعد نشره.">
+           Le téléchargement disponible est actuellement la version V12 pour Windows. L’installeur V12.1 sera proposé ici après sa publication.
         </p>
         <div class="specs">
           <span class="pill">Windows</span>
@@ -223,7 +336,7 @@
           <span class="pill" data-fr="Activation requise" data-ar="يتطلب التفعيل">Activation requise</span>
         </div>
       </div>
-      <a class="btn btn-primary" href="https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12/LK_Technologie_Pro_V12_Setup.exe" target="_blank" rel="noopener" data-fr="⬇ Télécharger V12" data-ar="⬇ تحميل V12">⬇ Télécharger V12</a>
+      <a class="btn btn-primary" href="https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12/LK_Technologie_Pro_V12_Setup.exe" download data-fr="⬇ Télécharger V12" data-ar="⬇ تحميل V12">⬇ Télécharger V12</a>
     </div>
   </div>
 </section>
@@ -233,27 +346,47 @@
   <div class="wrap foot">
     <div>
       <strong>LK.Technologie</strong><br>
-      <small>© 2026 LK.Technologie — LK.Technologie Pro V12</small>
+      <small>© 2026 LK.Technologie — LK.Technologie Pro V12.1</small>
     </div>
     <div class="contact">
       <span>☎ 0672 47 74 80</span>
-      <span>✉ LK.Technologie@yahoo.fr</span><a href="https://wa.me/213672477480?text=Bonjour%20LK.Technologie%2C%20je%20souhaite%20des%20informations%20sur%20LK.Technologie%20Pro%20V12." target="_blank" rel="noopener">💬 WhatsApp</a>
+      <span>✉ LK.Technologie@yahoo.fr</span><a href="https://wa.me/213672477480?text=Bonjour%20LK.Technologie%2C%20je%20souhaite%20des%20informations%20sur%20LK.Technologie%20Pro%20V12.1." target="_blank" rel="noopener">💬 WhatsApp</a>
     </div>
   </div>
 </footer>
 
+<dialog id="imageViewer" aria-labelledby="viewerTitle"><div class="viewer-bar"><p id="viewerTitle"></p><button class="viewer-close" type="button" data-fr="Fermer ✕" data-ar="إغلاق ✕">Fermer ✕</button></div><img class="viewer-image" alt=""></dialog>
 <script>
   const btn=document.getElementById('langBtn');
+  const viewer=document.getElementById('imageViewer');
   let ar=false;
-  btn.addEventListener('click',()=>{
-    ar=!ar;
+  function setLanguage(next){
+    ar=next;
     document.documentElement.lang=ar?'ar':'fr';
+    document.documentElement.dir=ar?'rtl':'ltr';
     document.body.dir=ar?'rtl':'ltr';
-    document.querySelectorAll('[data-fr]').forEach(el=>{
-      el.textContent=ar?el.dataset.ar:el.dataset.fr;
-    });
+    document.querySelectorAll('[data-fr]').forEach(el=>{el.textContent=ar?el.dataset.ar:el.dataset.fr;});
+    document.querySelectorAll('[data-video-title-fr]').forEach(el=>{el.setAttribute('aria-label',ar?el.dataset.videoTitleAr:el.dataset.videoTitleFr);});
+    document.querySelectorAll('.zoom-shot').forEach(el=>{el.setAttribute('aria-label',(ar?'تكبير: ':'Agrandir : ')+el.closest('figure').querySelector('b').textContent);});
     btn.textContent=ar?'Français':'العربية';
+    try{localStorage.setItem('lk-site-language',ar?'ar':'fr');}catch(e){}
+  }
+  btn.addEventListener('click',()=>setLanguage(!ar));
+  try{setLanguage(localStorage.getItem('lk-site-language')==='ar');}catch(e){setLanguage(false);}
+  document.querySelectorAll('video').forEach(video=>{
+    video.addEventListener('play',()=>document.querySelectorAll('video').forEach(other=>{if(other!==video)other.pause();}));
   });
+  document.querySelectorAll('.zoom-shot').forEach(link=>link.addEventListener('click',event=>{
+    if(typeof viewer.showModal!=='function')return;
+    event.preventDefault();
+    const label=link.closest('figure').querySelector('b').textContent;
+    viewer.querySelector('img').src=link.href;
+    viewer.querySelector('img').alt=label;
+    document.getElementById('viewerTitle').textContent=label;
+    viewer.showModal();
+  }));
+  viewer.querySelector('button').addEventListener('click',()=>viewer.close());
+  viewer.addEventListener('click',event=>{if(event.target===viewer){const r=viewer.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)viewer.close();}});
 </script>
 </body>
 </html>

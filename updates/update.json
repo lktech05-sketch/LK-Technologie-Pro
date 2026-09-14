@@ -10,8 +10,8 @@
     "en": "Official version 12.1. Modernized interface and improvements to inventory, workshop and POS."
   },
   "installer": {
-    "url": "https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.1/LK_Technologie_Pro_V12_1_Setup_20260913.exe",
-    "size_bytes": 188623895,
-    "sha256": "4e1f99b9cbf9577f029afe0fe2c187e5228ec52e5c42ed48f62d547ca1e0bb85"
+    "url": "https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.1/LK_Technologie_Pro_V12_1_Setup.exe",
+    "size_bytes": 188920065,
+    "sha256": "5f2e884ff570e6a9484717fc1c77a19204b09e3d8064cf2bbacc95dd95842d20"
   }
 }

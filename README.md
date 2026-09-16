@@ -1,6 +1,6 @@
 # LK.Technologie Pro
 
-Site officiel de présentation et de téléchargement de LK.Technologie Pro V12.
+Site officiel de présentation et de téléchargement de LK.Technologie Pro V12.2.
 
 ## Publication GitHub Pages
 Settings → Pages → Deploy from a branch → `main` / `/ (root)` → Save.

@@ -2,16 +2,16 @@
   "schema": 1,
   "product": "LK.Technologie Pro",
   "channel": "stable",
-  "version": "12.1",
+  "version": "12.2",
   "minimum_version": "12.1",
   "notes": {
-    "fr": "Version officielle 12.1. Interface modernisée et améliorations de la gestion de stock, de l’atelier et du POS.",
-    "ar": "الإصدار الرسمي 12.1. واجهة محدّثة وتحسينات تسيير المخزون والورشة ونقطة البيع.",
-    "en": "Official version 12.1. Modernized interface and improvements to inventory, workshop and POS."
+    "fr": "Version 12.2 : règlements POS/CRM unifiés, retours au prix d’origine après remise, permissions détaillées et article DIVERS-ZERO.",
+    "ar": "الإصدار 12.2: توحيد تسديدات POS وCRM، الإرجاع بالسعر الأصلي بعد الخصم، صلاحيات مفصلة وصنف DIVERS-ZERO.",
+    "en": "Version 12.2: unified POS/CRM payments, returns at the original discounted price, granular permissions and the DIVERS-ZERO item."
   },
   "installer": {
-    "url": "https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.1/LK_Technologie_Pro_V12_1_Setup.exe",
-    "size_bytes": 188920065,
-    "sha256": "5f2e884ff570e6a9484717fc1c77a19204b09e3d8064cf2bbacc95dd95842d20"
+    "url": "https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.2/LK_Technologie_Pro_V12_2_Setup.exe",
+    "size_bytes": 195640194,
+    "sha256": "067699a49fa91c1de723956e93c14b3f0372cb220528ada9143859cf455aa6ce"
   }
 }

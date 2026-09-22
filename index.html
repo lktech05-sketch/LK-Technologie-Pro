@@ -117,9 +117,8 @@
     .phone-logo{font-size:52px}.phone-screen strong{font-size:21px;color:#071a35}.phone-screen small{color:#5e6d7f;line-height:1.5}.phone-chip{display:inline-block;background:#e8f7ed;color:#15723d;border:1px solid #ccebd7;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;width:max-content}
     .android-download-card{margin-top:18px}
     .mobile-visual-wrap{position:relative;z-index:1;min-width:0}
-    .mobile-banner-img{display:none;width:100%;height:auto;border-radius:20px;box-shadow:0 26px 60px #0005;border:1px solid #ffffff26;background:#fff}
-    .mobile-visual-wrap.banner-ready .mobile-banner-img{display:block}
-    .mobile-visual-wrap.banner-ready .mobile-visual-fallback{display:none}
+    .mobile-banner-img{display:block;width:100%;height:auto;border-radius:20px;box-shadow:0 26px 60px #0005;border:1px solid #ffffff26;background:#fff}
+    .mobile-visual-fallback{display:none!important}
     @media(max-width:900px){.mobile-promo{grid-template-columns:1fr}.phone-visual{margin-top:10px}.phone-shell{max-width:250px}.mobile-promo h2{font-size:34px}}
     @media(max-width:620px){.mobile-promo{padding:28px 22px}.mobile-promo h2{font-size:30px}.mobile-actions{align-items:stretch}.mobile-actions .btn{width:100%}.apk-status{display:block;width:100%}}
 
@@ -256,7 +255,7 @@
       </div>
       <div class="mobile-visual-wrap" id="mobileVisualWrap">
         <img id="mobileHeroBanner" class="mobile-banner-img"
-             src="assets/mobile/lk-mobile-banner-v1.jpg"
+             src="assets/mobile/lk-mobile-banner-v1.jpg?v=20260923-1"
              width="1672" height="941"
              loading="lazy" decoding="async"
              alt="LK.Technologie Pro Mobile — Stock, POS, Clients, Atelier et Rapports sur Android">
@@ -555,15 +554,6 @@
     .then(response=>setApkState(response.ok))
     .catch(()=>setApkState(false));
 
-  const mobileHeroBanner=document.getElementById('mobileHeroBanner');
-  const mobileVisualWrap=document.getElementById('mobileVisualWrap');
-  function setMobileBannerReady(){
-    if(mobileVisualWrap)mobileVisualWrap.classList.add('banner-ready');
-  }
-  if(mobileHeroBanner){
-    mobileHeroBanner.addEventListener('load',setMobileBannerReady);
-    if(mobileHeroBanner.complete && mobileHeroBanner.naturalWidth>0)setMobileBannerReady();
-  }
   document.querySelectorAll('.zoom-shot').forEach(link=>link.addEventListener('click',event=>{
     if(typeof viewer.showModal!=='function')return;
     event.preventDefault();

@@ -1,0 +1,97 @@
+name: Verify published V12.4 website
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-published-v12-4.yml']
+  workflow_dispatch:
+permissions: {}
+jobs:
+  check-public-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check deployed pages, manifest and download targets (read only)
+        shell: python
+        run: |
+          import hashlib, json, os, re, subprocess, tempfile, time
+          from datetime import datetime, timezone
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin
+          from urllib.request import Request, urlopen
+          BASE = 'https://lktechnologie.com/'
+          EXE = 'https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.4/LK_Technologie_Pro_V12_4_Setup.exe'
+          APK = 'assets/mobile/LK_Technologie_Pro_Mobile_1_0_25.apk'
+          SHA = '9f1eb1d858004b7926737538d07f26716abdc5190e1f9fe092743b490ec0da7f'
+          SIZE = 196113272
+          class Page(HTMLParser):
+              def __init__(self, text):
+                  super().__init__(); self.tags=[]; self.scripts=[]; self.script=None; self.feed(text)
+              def handle_starttag(self, tag, attrs):
+                  self.tags.append((tag,dict(attrs)))
+                  if tag=='script': self.script=''
+              def handle_data(self, data):
+                  if self.script is not None: self.script+=data
+              def handle_endtag(self, tag):
+                  if tag=='script' and self.script is not None: self.scripts.append(self.script); self.script=None
+              def links(self): return [a for t,a in self.tags if t=='a']
+          def read(path):
+              url=urljoin(BASE,path)
+              url+=('&' if '?' in url else '?')+'audit='+str(time.time_ns())
+              with urlopen(Request(url,headers={'User-Agent':'LK-release-verification','Cache-Control':'no-cache'}),timeout=25) as r:
+                  if r.status!=200: raise RuntimeError(str(r.status))
+                  return r.read(1000000).decode('utf-8-sig')
+          deadline=time.monotonic()+330
+          while True:
+              try:
+                  home=read(''); landing=read('download-v12-4.html'); manifest=json.loads(read('updates/update.json'))
+                  assert 'lk-windows-release' in home and 'whats-new-v124' in home
+                  assert 'LK.Technologie Pro V12.4' in home
+                  assert manifest['version']=='12.4'
+                  assert 'id="downloadV124" href="'+EXE+'"' in landing
+                  break
+              except Exception as error:
+                  if time.monotonic()>deadline: raise RuntimeError('Deployment did not become consistent: '+str(error))
+                  print('Waiting for Pages deployment:',str(error),flush=True); time.sleep(12)
+          hp,lp=Page(home),Page(landing)
+          assert '<!doctype html>' in home.lower() and '{% include' not in home and '{{' not in home
+          for stale in ['En préparation','V12.4 se prépare','PROCHAINE VERSION','V12.3','Bientôt disponible']:
+              assert stale not in home and stale not in landing, stale
+          assert 'whats-new-v124' in home and 'href="#whats-new-v124"' in home
+          assert any(a.get('href')=='download-v12-4.html?start=1' for a in hp.links())
+          assert not any(a.get('href','').startswith('download-v12-3.html') for a in hp.links())
+          apk_links=[a for a in hp.links() if 'data-apk-link' in a]
+          assert len(apk_links)==2 and all(a.get('href')==APK and a.get('aria-disabled')=='false' for a in apk_links)
+          assert 'ANDROID · VERSION 1.0.25' in home
+          assert len([a for t,a in hp.tags if t=='article' and 'lesson' in a.get('class','').split()])==9
+          assert 'let visibleGuides=4;' in home and 'visibleGuides+4' in home
+          assert '.mobile-visual-fallback{display:none!important}' in home
+          banner=next(a for t,a in hp.tags if a.get('id')=='mobileHeroBanner')
+          assert 'lk-mobile-banner-v1.jpg' in banner['src']
+          for page in [hp,lp]:
+              for t,a in page.tags:
+                  if 'data-fr' in a: assert a.get('data-ar'), 'Missing Arabic translation'
+              for script in page.scripts:
+                  if not script.strip(): continue
+                  with tempfile.NamedTemporaryFile(mode='w',suffix='.js',delete=False,encoding='utf-8') as f:
+                      f.write(script); name=f.name
+                  subprocess.run(['node','--check',name],check=True);os.unlink(name)
+          installer=manifest['installer']
+          assert manifest['schema']==1 and manifest['channel']=='stable' and manifest['minimum_version']=='12.2'
+          assert installer=={'url':EXE,'size_bytes':SIZE,'sha256':SHA}
+          assert set(manifest['notes'])=={'fr','ar','en'} and all(manifest['notes'].values())
+          channels=json.loads(read('updates/release_channel.json'))
+          assert channels['manifest_url']==BASE+'updates/update.json'
+          assert channels['download_hosts']==['lktechnologie.com','www.lktechnologie.com','github.com','release-assets.githubusercontent.com']
+          download=next(a for t,a in lp.tags if a.get('id')=='downloadV124')
+          assert download['href']==EXE and 'disabled' not in download and download.get('aria-disabled')!='true'
+          assert SHA in landing and '196 113 272' in landing
+          assets={}
+          for label,url,magic in [('windows',EXE,b'MZ'),('android',BASE+APK,b'PK'),('banner',urljoin(BASE,banner['src']),b'\xff\xd8')]:
+              with urlopen(Request(url,headers={'User-Agent':'LK-release-verification','Range':'bytes=0-63'}),timeout=40) as r:
+                  prefix=r.read(64)
+                  assert r.status in (200,206) and prefix.startswith(magic),label
+                  assets[label]={'http_status':r.status,'content_type':r.headers.get('Content-Type'),'content_length':r.headers.get('Content-Length'),'content_range':r.headers.get('Content-Range'),'magic_valid':True}
+          report={'checked_at_utc':datetime.now(timezone.utc).isoformat(),'result':'PASS','homepage_windows_version':'12.4','landing_download_enabled':True,'homepage_old_windows_links':0,'manifest_version':'12.4','manifest_size_bytes':SIZE,'manifest_sha256':SHA,'minimum_version_unchanged':'12.2','android_version':'1.0.25','android_buttons_checked':2,'mobile_banner_reference_and_bytes_ok':True,'guide_count':9,'guide_pagination_source':'4 then increments of 4','french_arabic_attributes_checked':True,'inline_javascript_syntax':'PASS','asset_checks':assets,'browser_interactions_tested':False,'installer_executed':False,'full_installer_hash_recomputed_in_this_run':False,'prior_full_hash_verification_run':35890832879}
+          print('LK_PUBLICATION_AUDIT_BEGIN');print(json.dumps(report,ensure_ascii=False,indent=2));print('LK_PUBLICATION_AUDIT_END')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'w',encoding='utf-8') as f:
+              f.write('## V12.4 publication verification\n\n```json\n'+json.dumps(report,ensure_ascii=False,indent=2)+'\n```\n')

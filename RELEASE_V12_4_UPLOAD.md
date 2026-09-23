@@ -1,36 +1,25 @@
-# Windows V12.4 — publication checklist
+# Windows V12.4 — release activated
 
-Status: PREPARATION ONLY. No V12.4 installer or stable app-update manifest is published by this change.
+The owner confirmed successful testing on the shop computers and explicitly approved public activation on 23 September 2026. This change publishes the website download and stable update metadata; it does not modify the uploaded installer.
 
-## Upload
+## Published package
+- Release tag: `V12.4`.
+- Asset: `LK_Technologie_Pro_V12_4_Setup.exe`.
+- Asset ID: `584171689`.
+- Bytes: `196113272`.
+- SHA-256: `9f1eb1d858004b7926737538d07f26716abdc5190e1f9fe092743b490ec0da7f`.
+- Landing page: `https://lktechnologie.com/download-v12-4.html`.
+- Stable manifest: `https://lktechnologie.com/updates/update.json`.
+- Minimum version in the manifest remains `12.2`; the existing download-host allowlist is unchanged.
 
-Create a NEW GitHub Release, do not rename or overwrite V12.3.
-- Tag: `V12.4` (capital V).
-- Target: `main` (this repository hosts the website and binary distribution).
-- Title: `LK.Technologie Pro V12.4`.
-- Asset: `LK_Technologie_Pro_V12_4_Setup.exe`, from `installer_output` in the approved Windows build.
-- Upload in the release binaries area, not in `assets/mobile`, not using Add file / Upload files.
-- Save draft while Windows/server/client acceptance is incomplete. Do not mark as latest stable before approval.
+The full installer download, hash, Windows PE headers and installer version resources were verified by run `35890832879` without executing the installer. FileVersion is 12.4.0.0, ProductVersion is 12.4.0, Authenticode status is NotSigned. That automated check is not a claim of independent testing of shop operations; functional approval was supplied by the owner.
 
-Expected future public asset URL:
-`https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.4/LK_Technologie_Pro_V12_4_Setup.exe`
+## Website implementation
+- `_includes/lk-home-content.html` remains the original homepage base with mobile 1.0.25, banner, media and progressive guide logic.
+- `index.html` composes that base with `_includes/windows-v12-4-features.html` and updates Windows-specific version/link strings during the Jekyll build. Edit the release wrapper/features for release-specific text, and the base include for general UI changes. Do not enable `.nojekyll` while this structure is used.
+- The obsolete V12.4 preview insert was removed. Existing V12.3 release/page/assets remain accessible but are no longer the homepage's Windows call-to-action.
+- The homepage download routes through the official-domain landing page with `?start=1`; the landing page requests the binary from the GitHub release and keeps a manual download link. Direct visits without that query do not auto-download.
+- Android 1.0.25 links, the mobile banner and guide pagination are preserved.
 
-Public landing page prepared now:
-`https://lktechnologie.com/download-v12-4.html`
-Its V12.4 button is intentionally disabled. Publishing a release does not silently switch stable downloads.
-
-## Before activation
-
-1. Confirm same approved Windows build on server and second PC: product add/edit, sales, supplier purchases, cash operations, returns, atelier, printing, backup and restore. Do not infer approval from source-only tests.
-2. Verify the uploaded installer bytes, file size, SHA-256 and embedded version (12.4); verify its signature when available. Never invent a hash or reuse V12.3 values.
-3. Publish the validated release, then update the homepage Windows version/CTAs, landing-page status and EXE link together.
-4. Update `updates/update.json` with the verified installer URL, actual size and SHA-256 and reviewed V12.4 notes. Inspect updater compatibility before choosing minimum_version. Keep Android 1.0.25 unchanged.
-5. Check deployed pages and both downloads, French/Arabic, mobile banner, guides 4 -> 8 -> 9, and the in-app update independently.
-
-## Homepage structure
-
-`_includes/lk-home-content.html` is an exact copy of the prior index blob `0f919b2094cf37fb91181a6dc352373d716cee98`.
-`index.html` is a small Jekyll wrapper that inserts `_includes/windows-v12-4-preview.html` before the features section at build time. The generated page remains ordinary static HTML, with the original JS and media links intact.
-Edit the base include for future normal homepage changes. Remove the preview insertion after final activation or convert it to the V12.4 release announcement. Do not add `.nojekyll` while this wrapper is in use.
-
-Rollback: restore the index.html blob above; added pages/includes may remain unlinked.
+## Future asset replacement
+Never replace a release binary without updating and verifying its size and hash in the manifest and landing page. Prefer a new release version. Do not reuse hashes from previous installers.

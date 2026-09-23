@@ -1,0 +1,133 @@
+name: Prepare RC3.15 download replacement
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prepare-rc315-download.yml']
+  workflow_dispatch:
+permissions: {}
+jobs:
+  prepare:
+    runs-on: windows-latest
+    timeout-minutes: 7
+    permissions:
+      contents: write
+    steps:
+      - name: Download and statically verify uploaded installer without executing it
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $base = 'https://api.github.com/repos/lktech05-sketch/LK-Technologie-Pro'
+          $asset = Invoke-RestMethod -Uri "$base/releases/assets/584543573" -Headers @{Accept='application/vnd.github+json'}
+          $allowedNames = @('LK_Technologie_Pro_V12_4_RC3_15_Setup.exe.exe', 'LK_Technologie_Pro_V12_4_RC3_15_Setup.exe')
+          if ($asset.name -notin $allowedNames -or $asset.size -ne 196134490 -or $asset.state -ne 'uploaded') { throw 'Unexpected asset metadata' }
+          $expected = '2ef88c041b4cbed1a69fce8b40c0880f10d2de2e6becb08768cb089061957835'
+          if ($asset.digest -ne "sha256:$expected") { throw 'Unexpected asset digest' }
+          $file = Join-Path $env:RUNNER_TEMP 'verified-rc315.exe'
+          & curl.exe --fail --location --silent --show-error --connect-timeout 20 --max-time 180 --output $file $asset.browser_download_url
+          if ($LASTEXITCODE -ne 0) { throw 'Download failed' }
+          $item = Get-Item -LiteralPath $file
+          $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($item.Length -ne 196134490 -or $hash -ne $expected) { throw 'Downloaded bytes do not match uploaded asset' }
+          $reader = [System.IO.BinaryReader]::new([System.IO.File]::OpenRead($file))
+          try {
+            if ($reader.ReadUInt16() -ne 0x5a4d) { throw 'Missing MZ header' }
+            $reader.BaseStream.Position = 0x3c
+            $peOffset = $reader.ReadUInt32()
+            if ($peOffset -gt ($item.Length-6)) { throw 'Invalid PE offset' }
+            $reader.BaseStream.Position = $peOffset
+            if ($reader.ReadUInt32() -ne 0x4550) { throw 'Invalid PE header' }
+          } finally { $reader.Dispose() }
+          $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($file)
+          if ($version.FileVersion.Trim() -ne '12.4.0.0' -or $version.ProductName.Trim() -ne 'LK.Technologie Pro V12.4') { throw 'Unexpected installer version or product' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $file
+          $report = [ordered]@{checked_at_utc=[DateTime]::UtcNow.ToString('o');asset_id=584543573;original_filename=$asset.name;size_bytes=$item.Length;sha256=$hash;file_version=$version.FileVersion.Trim();product_version=$version.ProductVersion.Trim();product_name=$version.ProductName.Trim();authenticode_status=$signature.Status.ToString();download_completed=$true;hash_matches=$true;installer_executed=$false;payload_build_identity_verified=$false}
+          $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'rc315-verification.json') -Encoding utf8
+          $report | ConvertTo-Json | Write-Output
+      - name: Correct double extension and prepare an uncommitted website tree only
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          import base64, hashlib, html, json, os
+          from pathlib import Path
+          from urllib.parse import quote
+          from urllib.request import Request, urlopen
+          REPO='lktech05-sketch/LK-Technologie-Pro'
+          API='https://api.github.com/repos/'+REPO
+          HEAD=os.environ['GITHUB_SHA']
+          assert os.environ['GITHUB_REPOSITORY']==REPO
+          OLD='LK_Technologie_Pro_V12_4_Setup.exe'
+          NEW='LK_Technologie_Pro_V12_4_RC3_15_Setup.exe'
+          SHA='2ef88c041b4cbed1a69fce8b40c0880f10d2de2e6becb08768cb089061957835'
+          OLD_SHA='9f1eb1d858004b7926737538d07f26716abdc5190e1f9fe092743b490ec0da7f'
+          URL='https://github.com/'+REPO+'/releases/download/V12.4/'+NEW
+          def api(path, method='GET', data=None):
+              headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GH_TOKEN'],'User-Agent':'LK-RC315-maintenance','X-GitHub-Api-Version':'2022-11-28'}
+              body=None if data is None else json.dumps(data).encode()
+              if body is not None: headers['Content-Type']='application/json'
+              with urlopen(Request(API+path,data=body,headers=headers,method=method),timeout=40) as response:
+                  return json.load(response)
+          def read(path):
+              data=api('/contents/'+quote(path,safe='/')+'?ref='+HEAD)
+              assert data['encoding']=='base64'
+              return base64.b64decode(data['content']).decode('utf-8')
+          def change(text, old, new, minimum=1):
+              if text.count(old)<minimum: raise ValueError('Expected content not found: '+old[:70])
+              return text.replace(old,new)
+          def bilingual(tag, fr, ar, attrs=''):
+              return '<'+tag+' '+attrs+' data-fr="'+html.escape(fr,quote=True)+'" data-ar="'+html.escape(ar,quote=True)+'">'+html.escape(fr)+'</'+tag+'>'
+          verification=json.loads((Path(os.environ['RUNNER_TEMP'])/'rc315-verification.json').read_text(encoding='utf-8-sig'))
+          assert verification['hash_matches'] and verification['sha256']==SHA
+          release=api('/releases/tags/V12.4')
+          assert release['id']==394794209 and not release['draft'] and not release['prerelease']
+          assets=release['assets']; asset=next(a for a in assets if a['id']==584543573)
+          assert asset['size']==196134490 and asset['digest']=='sha256:'+SHA
+          assert not any(a['id']!=584543573 and a['name']==NEW for a in assets)
+          assert any(a['id']==584171689 and a['name']==OLD for a in assets), 'Preserve previous installer'
+          if asset['name']!=NEW:
+              assert asset['name']==NEW+'.exe'
+              asset=api('/releases/assets/584543573','PATCH',{'name':NEW})
+          assert asset['name']==NEW and asset['size']==196134490 and asset['digest']=='sha256:'+SHA
+          verification.update(filename=NEW,asset_url=URL,old_installer_retained=True)
+          changes={}
+          landing=read('download-v12-4.html')
+          for old,new in [(OLD,NEW),(OLD_SHA,SHA),('196,11','196,13'),('196.11','196.13'),('196 113 272','196 134 490'),('196,113,272','196,134,490')]:
+              landing=change(landing,old,new)
+          landing=change(landing,'V12.4 — Téléchargement disponible','V12.4 — Correctif RC3.15 disponible')
+          landing=change(landing,'V12.4 — متاحة للتحميل','V12.4 — تصحيح RC3.15 متاح للتحميل')
+          notice=bilingual('p','Correctif RC3.15 : prise en compte des codes Multicode pour le téléphone et attente limitée lors de l’activation.','تصحيح RC3.15: دعم أكواد Multicode للهاتف وتحديد مدة انتظار التفعيل.','id="buildNotice" class="note"')
+          manual=bilingual('p','Déjà en V12.4 ? Le vérificateur actuel compare le numéro 12.4, pas le numéro RC. Téléchargez ce correctif depuis cette page et installez-le sur tous les postes. Vérifiez RC3.15 dans À propos après installation.','لديك V12.4 بالفعل؟ أداة التحديث الحالية تقارن رقم 12.4 وليس رقم RC. حمّل هذا التصحيح من هذه الصفحة وثبّته على جميع الأجهزة، ثم تأكد من ظهور RC3.15 في صفحة حول البرنامج.','id="sameVersionNotice" class="note"')
+          landing=change(landing,'  <section class="download-box"',notice+'\n  <section class="download-box"')
+          landing=change(landing,'    <details><summary',manual+'\n    <details><summary')
+          landing=change(landing,'<meta name="lk-windows-release" content="12.4">','<meta name="lk-windows-release" content="12.4"><meta name="lk-windows-build" content="RC3.15">')
+          if verification['authenticode_status']!='NotSigned': raise ValueError('Review signature wording before publication')
+          assert NEW+'.exe' not in landing and OLD_SHA not in landing
+          changes['download-v12-4.html']=landing
+          index=read('index.html')
+          index=change(index,'Version V12.4 disponible','V12.4 disponible · Correctif RC3.15')
+          index=change(index,'V12.4 متاحة الآن','V12.4 متاحة الآن · تصحيح RC3.15')
+          index=change(index,'<meta name="lk-windows-release" content="12.4">','<meta name="lk-windows-release" content="12.4"><meta name="lk-windows-build" content="RC3.15">')
+          changes['index.html']=index
+          features=read('_includes/windows-v12-4-features.html')
+          feature_notice=bilingual('p','Correctif RC3.15 disponible : Multicode pour le téléphone et amélioration de l’attente d’activation.','تصحيح RC3.15 متاح: دعم Multicode للهاتف وتحسين انتظار التفعيل.','class="media-note"')
+          features=change(features,'    <div class="features">',feature_notice+'\n    <div class="features">')
+          changes['_includes/windows-v12-4-features.html']=features
+          manifest=json.loads(read('updates/update.json'))
+          assert manifest['version']=='12.4' and manifest['installer']['sha256']==OLD_SHA and manifest['installer']['size_bytes']==196113272
+          manifest['build_id']='RC3.15'
+          manifest['installer']={'url':URL,'size_bytes':196134490,'sha256':SHA}
+          additions={
+            'fr':'• Correctif RC3.15 : reconnaissance des codes supplémentaires Multicode dans les recherches produit utilisées par le téléphone.\n• Activation : attente de l’interface limitée à 20 secondes, boutons réactivés et réponses tardives ignorées. Cela ne supprime pas un éventuel problème réseau local.\n• Déjà en V12.4 : installation manuelle de ce correctif depuis le site, car les versions actuelles du vérificateur ne comparent pas le numéro RC.\n',
+            'ar':'• تصحيح RC3.15: التعرف على أكواد Multicode الإضافية في البحث عن المنتجات من الهاتف.\n• التفعيل: مهلة انتظار للواجهة مقدارها 20 ثانية، إعادة تفعيل الأزرار وتجاهل الردود المتأخرة؛ لا يعني ذلك إزالة أي عائق في الشبكة المحلية.\n• لمن لديه V12.4: تحميل وتثبيت هذا التصحيح من الموقع يدويًا لأن أداة التحديث الحالية لا تقارن رقم RC.\n',
+            'en':'• RC3.15 hotfix: recognize additional Multicode barcodes in product lookups used by the phone.\n• Activation: limit UI waiting to 20 seconds, restore controls and ignore late responses. This does not remove a possible local network problem.\n• Already on V12.4: download and install this hotfix manually; the existing updater does not compare RC build identifiers.\n'}
+          for lang,prefix in additions.items(): manifest['notes'][lang]=prefix+manifest['notes'][lang]
+          assert manifest['minimum_version']=='12.2' and manifest['channel']=='stable'
+          changes['updates/update.json']=json.dumps(manifest,ensure_ascii=False,indent=2)+'\n'
+          changes['updates/rc3-15-verification.json']=json.dumps(verification,ensure_ascii=False,indent=2)+'\n'
+          # Prepare objects only: no branch update and no automatic publication here.
+          parent=api('/git/commits/'+HEAD)
+          tree=api('/git/trees','POST',{'base_tree':parent['tree']['sha'],'tree':[{'path':path,'mode':'100644','type':'blob','content':text} for path,text in changes.items()]})
+          print('LK_RC315_PREPARED_BEGIN')
+          print(json.dumps({'parent_sha':HEAD,'tree_sha':tree['sha'],'changed_paths':list(changes),'asset':verification,'manifest_version':'12.4','build_id':'RC3.15','same_version_updates':'manual install; comparator unchanged','published':False},ensure_ascii=False,indent=2))
+          print('LK_RC315_PREPARED_END')

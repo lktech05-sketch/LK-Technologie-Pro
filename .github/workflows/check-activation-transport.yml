@@ -1,0 +1,53 @@
+name: Check official activation transport
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/check-activation-transport.yml'
+permissions: {}
+jobs:
+  transport:
+    runs-on: windows-latest
+    timeout-minutes: 3
+    steps:
+      - name: Fetch encrypted envelope with standard Python TLS verification
+        shell: python
+        run: |
+          import hashlib, json, time, urllib.request, urllib.error
+          from datetime import datetime, timezone
+          # Public encrypted envelope only. No redemption key, decrypted licence,
+          # private signing key, customer data, or device ID is used or logged.
+          url = 'https://lktechnologie.com/activation/v1/1befd7c2c59db1dbc72760125f2fcff8b11808389f2572e9b7a384a84704847c.json'
+          expected_blob = 'd7d404561640ac0b3e7a4646062091b1519d87b5'
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  raise ValueError('Redirect refused')
+          results = []
+          for variant in ('normal', 'no_cache'):
+              headers = {'Accept': 'application/json', 'User-Agent': 'LK-Technologie-Activation/12.4'}
+              if variant == 'no_cache':
+                  headers.update({'Cache-Control': 'no-cache', 'Pragma': 'no-cache'})
+              started = time.monotonic()
+              result = {'variant': variant, 'tls_verification': True, 'redirects_allowed': False}
+              try:
+                  request = urllib.request.Request(url, headers=headers)
+                  with urllib.request.build_opener(NoRedirect()).open(request, timeout=15) as response:
+                      body = response.read(65537)
+                      result.update(http_status=response.status, content_type=response.headers.get('Content-Type'), size_bytes=len(body), same_url=response.geturl()==url)
+                  blob = hashlib.sha1(b'blob '+str(len(body)).encode()+b'\0'+body).hexdigest()
+                  result['matches_repository_blob'] = blob == expected_blob
+                  envelope = json.loads(body.decode('utf-8-sig'))
+                  result['encrypted_envelope_valid'] = isinstance(envelope, dict) and envelope.get('format')=='LK-ACTIVATION-1' and isinstance(envelope.get('nonce'), str) and isinstance(envelope.get('ciphertext'), str)
+                  result['passed'] = result['http_status']==200 and result['same_url'] and result['matches_repository_blob'] and result['encrypted_envelope_valid'] and len(body)<=65536
+              except urllib.error.HTTPError as error:
+                  result.update(passed=False, http_status=error.code, error_type=type(error).__name__)
+              except Exception as error:
+                  result.update(passed=False, error_type=type(error).__name__)
+              result['elapsed_seconds'] = round(time.monotonic()-started, 3)
+              results.append(result)
+          report = {'checked_at_utc': datetime.now(timezone.utc).isoformat(), 'windows_runner_only': True, 'shop_pc_tested': False, 'licence_installed': False, 'results': results}
+          print('LK_ACTIVATION_TRANSPORT_BEGIN')
+          print(json.dumps(report, indent=2))
+          print('LK_ACTIVATION_TRANSPORT_END')
+          if not all(result['passed'] for result in results):
+              raise SystemExit('Activation transport check did not pass')

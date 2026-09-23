@@ -1,0 +1,110 @@
+name: Verify and prepare Android 1.0.26
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/prepare-mobile-126.yml']
+  workflow_dispatch:
+permissions: {}
+jobs:
+  verify-and-prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - name: Inspect APK versions and signatures without installing or running applications
+        shell: python
+        run: |
+          import hashlib,json,os,re,subprocess,zipfile
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          REPO='lktech05-sketch/LK-Technologie-Pro'
+          HEAD=os.environ['GITHUB_SHA']
+          assert os.environ['GITHUB_REPOSITORY']==REPO
+          SDK=Path(os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT') or '/usr/local/lib/android/sdk')
+          candidates=[p for p in (SDK/'build-tools').glob('*') if (p/'apksigner').is_file() and (p/'aapt').is_file()]
+          assert candidates, 'Android build tools unavailable; do not publish without verifying APK signatures'
+          tools=max(candidates,key=lambda p:tuple(int(n) for n in re.findall(r'\d+',p.name)))
+          def run(args):
+              r=subprocess.run([str(a) for a in args],text=True,capture_output=True,timeout=60)
+              if r.returncode: raise RuntimeError('Android inspection failed: '+r.stdout[-3000:]+r.stderr[-3000:])
+              return r.stdout+r.stderr
+          checked={}
+          for ver,size,blob in [('1.0.25',2757222,'022838e6081dabbab55de80f1d1d69a0ff569831'),('1.0.26',2760090,'47f93e15c88f6bbcb095984dc7b9c99fe30ac0f6')]:
+              name='LK_Technologie_Pro_Mobile_'+ver.replace('.','_')+'.apk'
+              url='https://raw.githubusercontent.com/'+REPO+'/'+HEAD+'/assets/mobile/'+name
+              with urlopen(Request(url,headers={'User-Agent':'LK-Android-release-check'}),timeout=40) as r:
+                  assert r.status==200
+                  data=r.read(16000000)
+              assert len(data)==size
+              assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==blob
+              file=Path(os.environ['RUNNER_TEMP'])/name;file.write_bytes(data)
+              with zipfile.ZipFile(file) as z:
+                  assert z.testzip() is None
+                  assert 'AndroidManifest.xml' in z.namelist() and 'classes.dex' in z.namelist()
+              badging=run([tools/'aapt','dump','badging',file])
+              package=re.search(r"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'",badging,re.M)
+              assert package, 'Missing package metadata'
+              signatures=run([tools/'apksigner','verify','--verbose','--print-certs',file])
+              certs=sorted(set(v.lower().replace(':','') for v in re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([A-Fa-f0-9:]+)$',signatures,re.M)))
+              assert certs and all(len(v)==64 for v in certs)
+              assert package.group(3)==ver, 'Renaming an APK does not change its embedded version'
+              checked[ver]={'filename':name,'size_bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'git_blob':blob,'package_name':package.group(1),'version_code':int(package.group(2)),'version_name':package.group(3),'signatures_valid':True,'signer_certificate_sha256':certs,'debuggable':'application-debuggable' in badging,'sdk_version':re.search(r"^sdkVersion:'([^']+)'",badging,re.M).group(1)}
+          old,new=checked['1.0.25'],checked['1.0.26']
+          assert old['package_name']==new['package_name'], 'Application ID changed'
+          assert old['signer_certificate_sha256']==new['signer_certificate_sha256'], 'Signing certificate changed: stop before publication'
+          assert new['version_code']>old['version_code'], 'Version code must increase for an update'
+          report={'result':'PASS','checked_at_utc':datetime.now(timezone.utc).isoformat(),'android_build_tools':tools.name,'previous':old,'new':new,'same_package':True,'same_signer':True,'version_code_increased':True,'apk_installed_or_executed':False,'financial_features_tested':False}
+          (Path(os.environ['RUNNER_TEMP'])/'mobile126-verification.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+          print('LK_MOBILE126_STATIC_BEGIN');print(json.dumps(report,indent=2));print('LK_MOBILE126_STATIC_END')
+      - name: Prepare only the Android links and notices as uncommitted Git objects
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          import base64,html,json,os
+          from pathlib import Path
+          from urllib.parse import quote
+          from urllib.request import Request,urlopen
+          REPO='lktech05-sketch/LK-Technologie-Pro';HEAD=os.environ['GITHUB_SHA']
+          API='https://api.github.com/repos/'+REPO
+          def api(path,method='GET',data=None):
+              headers={'Accept':'application/vnd.github+json','Authorization':'Bearer '+os.environ['GH_TOKEN'],'User-Agent':'LK-Mobile126-release'}
+              body=None if data is None else json.dumps(data).encode('utf-8')
+              if body is not None:headers['Content-Type']='application/json'
+              with urlopen(Request(API+path,headers=headers,data=body,method=method),timeout=40) as r:return json.load(r)
+          def read(path):
+              f=api('/contents/'+quote(path,safe='/')+'?ref='+HEAD)
+              assert f['encoding']=='base64'
+              return base64.b64decode(f['content']).decode('utf-8')
+          report=json.loads((Path(os.environ['RUNNER_TEMP'])/'mobile126-verification.json').read_text())
+          assert report['result']=='PASS' and report['same_signer'] and report['new']['version_name']=='1.0.26'
+          OLD='LK_Technologie_Pro_Mobile_1_0_25.apk';NEW='LK_Technologie_Pro_Mobile_1_0_26.apk'
+          home=read('_includes/lk-home-content.html');landing=read('download-v12-4.html')
+          assert home.count('data-apk-link href="assets/mobile/'+OLD+'"')==2
+          assert OLD in home and '1.0.25' in home and 'Application Android 1.0.25' in landing
+          original_home=home;original_landing=landing
+          home=home.replace(OLD,NEW).replace('1.0.25','1.0.26')
+          landing=landing.replace('1.0.25','1.0.26')
+          assert home.replace(NEW,OLD).replace('1.0.26','1.0.25')==original_home
+          assert landing.replace('1.0.26','1.0.25')==original_landing
+          fr='Les corrections financières nécessitent aussi le logiciel PC 12.4 RC3.16. Mettre à jour uniquement l’APK ne corrige pas le service du PC.'
+          ar='تصحيحات العمليات المالية تتطلب أيضًا نسخة الكمبيوتر 12.4 RC3.16. تحديث APK وحده لا يصحح خدمة الكمبيوتر.'
+          note='<p id="mobileCompatibility" class="apk-status" style="margin-top:16px" data-fr="'+html.escape(fr,quote=True)+'" data-ar="'+html.escape(ar,quote=True)+'">'+html.escape(fr)+'</p>'
+          marker='      </div>\n      <div class="mobile-visual-wrap" id="mobileVisualWrap">'
+          assert home.count(marker)==1
+          home=home.replace(marker,'        '+note+'\n'+marker)
+          changes={'_includes/lk-home-content.html':home,'download-v12-4.html':landing,'assets/mobile/mobile-1.0.26-verification.json':json.dumps(report,ensure_ascii=False,indent=2)+'\n'}
+          # Keep the existing browser regression test aligned with the new APK.
+          testpath='.github/workflows/browser-verify-v12-4.yml'
+          test=read(testpath)
+          assert OLD in test and '1.0.25' in test
+          changes[testpath]=test.replace(OLD,NEW).replace('1.0.25','1.0.26')
+          protected=['index.html','updates/update.json','updates/release_channel.json','assets/mobile/lk-mobile-banner-v1.jpg']
+          protected_blobs={p:api('/contents/'+quote(p,safe='/')+'?ref='+HEAD)['sha'] for p in protected}
+          commit=api('/git/commits/'+HEAD)
+          tree=api('/git/trees','POST',{'base_tree':commit['tree']['sha'],'tree':[{'path':p,'mode':'100644','type':'blob','content':v} for p,v in changes.items()]})
+          print('LK_MOBILE126_PREPARED_BEGIN')
+          print(json.dumps({'parent_sha':HEAD,'tree_sha':tree['sha'],'changed_paths':list(changes),'protected_blobs':protected_blobs,'new_apk':report['new'],'published':False},ensure_ascii=False,indent=2))
+          print('LK_MOBILE126_PREPARED_END')

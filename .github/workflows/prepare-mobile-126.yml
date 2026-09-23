@@ -46,11 +46,12 @@ jobs:
               assert package,'Missing package metadata'
               signatures=run([tools/'apksigner','verify','--verbose','--print-certs',file])
               print('PUBLIC_CERTIFICATE_DIAGNOSTICS '+ver+'\n'+signatures,flush=True)
-              certs=sorted(set(v.lower().replace(':','') for v in re.findall(r'Signer #\d+ certificate SHA-256 digest:\s*([A-Fa-f0-9:]+)',signatures)))
+              pattern=r'(?:Signer #\d+|V\d+(?:\.\d+)? Signer):? certificate SHA-256 digest:\s*([A-Fa-f0-9]{64})'
+              certs=sorted(set(v.lower() for v in re.findall(pattern,signatures)))
               assert certs and all(len(v)==64 for v in certs),'Signing certificate SHA-256 could not be parsed'
               assert package.group(3)==ver,'Embedded APK version differs from its filename'
               sdk=re.search(r"sdkVersion:'([^']+)'",badging)
-              checked[ver]={'filename':name,'size_bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'git_blob':blob,'package_name':package.group(1),'version_code':int(package.group(2)),'version_name':package.group(3),'signatures_valid':True,'signer_certificate_sha256':certs,'debuggable':'application-debuggable' in badging,'sdk_version':sdk.group(1) if sdk else None}
+              checked[ver]={'filename':name,'size_bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'git_blob':blob,'package_name':package.group(1),'version_code':int(package.group(2)),'version_name':package.group(3),'signatures_valid':True,'signer_certificate_sha256':certs,'debug_certificate':'CN=Android Debug' in signatures,'debuggable':'application-debuggable' in badging,'sdk_version':sdk.group(1) if sdk else None}
           old,new=checked['1.0.25'],checked['1.0.26']
           print('APK_METADATA '+json.dumps(checked),flush=True)
           assert old['package_name']==new['package_name'],'Application ID changed'

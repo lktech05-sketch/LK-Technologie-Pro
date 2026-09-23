@@ -1,0 +1,79 @@
+name: Verify uploaded Windows V12.4
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-windows-v12-4.yml'
+
+# No repository writes, secrets, checkout, installer execution or deployment.
+permissions: {}
+
+jobs:
+  inspect-installer:
+    runs-on: windows-latest
+    timeout-minutes: 6
+    steps:
+      - name: Download and inspect installer without running it
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $url = 'https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.4/LK_Technologie_Pro_V12_4_Setup.exe'
+          $expectedSize = [long]196113272
+          $expectedHash = '9f1eb1d858004b7926737538d07f26716abdc5190e1f9fe092743b490ec0da7f'
+          $file = Join-Path $env:RUNNER_TEMP 'LK_Technologie_Pro_V12_4_Setup.exe'
+          & curl.exe --fail --location --silent --show-error --connect-timeout 20 --max-time 180 --output $file $url
+          if ($LASTEXITCODE -ne 0) { throw 'Installer download failed.' }
+          $item = Get-Item -LiteralPath $file
+          $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($item.Length -ne $expectedSize -or $hash -ne $expectedHash) {
+            [ordered]@{ result='INTEGRITY_MISMATCH'; size_bytes=$item.Length; sha256=$hash; expected_size_bytes=$expectedSize; expected_sha256=$expectedHash } | ConvertTo-Json | Write-Output
+            throw 'Downloaded installer does not match the release asset verified at upload.'
+          }
+          $reader = [System.IO.BinaryReader]::new([System.IO.File]::OpenRead($file))
+          try {
+            $mz = $reader.ReadUInt16()
+            $reader.BaseStream.Position = 0x3c
+            $offset = $reader.ReadUInt32()
+            if ($offset -gt ($item.Length - 6)) { throw 'Invalid PE offset.' }
+            $reader.BaseStream.Position = $offset
+            $pe = $reader.ReadUInt32()
+            $machine = $reader.ReadUInt16()
+          } finally { $reader.Dispose() }
+          if ($mz -ne 0x5a4d -or $pe -ne 0x00004550) { throw 'Invalid Windows executable header.' }
+          $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($file)
+          $signature = Get-AuthenticodeSignature -LiteralPath $file
+          $versionMatches = ($version.ProductVersion -match '^12\.4(?:\.|$)') -or ($version.FileVersion -match '^12\.4(?:\.|$)')
+          $report = [ordered]@{
+            checked_at_utc = [DateTime]::UtcNow.ToString('o')
+            asset_url = $url
+            downloaded = $true
+            file_name = $item.Name
+            size_bytes = $item.Length
+            sha256 = $hash
+            hash_matches_release_digest = $true
+            windows_pe_header_valid = $true
+            installer_pe_machine = ('0x{0:X4}' -f $machine)
+            product_name = $version.ProductName
+            product_version = $version.ProductVersion
+            file_version = $version.FileVersion
+            file_description = $version.FileDescription
+            company_name = $version.CompanyName
+            installer_version_matches_12_4 = $versionMatches
+            authenticode_status = $signature.Status.ToString()
+            signer_subject = $(if ($null -ne $signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { $null })
+            installer_executed = $false
+            payload_application_version_checked = $false
+            rc3_13_payload_identity_checked = $false
+            installation_tested = $false
+            shop_server_and_second_pc_tested = $false
+          }
+          $json = $report | ConvertTo-Json -Depth 4
+          Write-Output 'LK_V124_VERIFICATION_JSON_BEGIN'
+          Write-Output $json
+          Write-Output 'LK_V124_VERIFICATION_JSON_END'
+          ('## Windows V12.4 static installer verification' + "`n`n~~~json`n" + $json + "`n~~~`n`nInstaller NOT executed. This is not functional acceptance on shop PCs.") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          if ($signature.Status.ToString() -ne 'Valid') { Write-Warning ('Authenticode signature status: ' + $signature.Status.ToString()) }
+          if (-not $versionMatches) { throw 'Installer version resources do not identify V12.4.' }

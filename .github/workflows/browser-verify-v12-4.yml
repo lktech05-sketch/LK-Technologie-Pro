@@ -1,4 +1,4 @@
-name: Browser verification V12.4 RC3.15
+name: Browser verification V12.4 RC3.16
 on:
   push:
     branches: [main]
@@ -14,7 +14,7 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check playwright==1.63.0
           python -m playwright install --with-deps chromium
-      - name: Verify live RC3.15 pages and completed browser download without executing installer
+      - name: Verify live RC3.16 pages and complete a browser download without executing the installer
         shell: python
         run: |
           import hashlib,json,os,time
@@ -23,84 +23,96 @@ jobs:
           from urllib.request import Request,urlopen
           from playwright.sync_api import sync_playwright
           BASE='https://lktechnologie.com/'
-          NAME='LK_Technologie_Pro_V12_4_RC3_15_Setup.exe'
+          NAME='LK_Technologie_Pro_V12_4_RC3_16_Setup.exe'
           EXE='https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.4/'+NAME
-          HASH='2ef88c041b4cbed1a69fce8b40c0880f10d2de2e6becb08768cb089061957835'
-          SIZE=196134490
-          report={}; errors=[]
+          HASH='7c4f376fa03acd1d0ad221d8ce3b1b5b5a3fb783a4ff288cd5bfa44737f7e848'
+          SIZE=196588836
+          report={};errors=[]
           def text(path):
-              url=BASE+path+('' if '?' in path else '?')+'&audit='+str(time.time_ns())
-              with urlopen(Request(url,headers={'Cache-Control':'no-cache'}),timeout=25) as r:
-                  assert r.status==200
-                  return r.read(1000000).decode('utf-8-sig')
+              url=BASE+path+('&' if '?' in path else '?')+'audit='+str(time.time_ns())
+              with urlopen(Request(url,headers={'Cache-Control':'no-cache'}),timeout=25) as response:
+                  assert response.status==200
+                  return response.read(1000000).decode('utf-8-sig')
           deadline=time.monotonic()+210
           while True:
               try:
                   home=text('');landing=text('download-v12-4.html');manifest=json.loads(text('updates/update.json'))
-                  assert 'name="lk-windows-build" content="RC3.15"' in home
-                  assert 'name="lk-windows-build" content="RC3.15"' in landing
-                  assert manifest['build_id']=='RC3.15' and manifest['version']=='12.4'
+                  assert 'name="lk-windows-build" content="RC3.16"' in home
+                  assert 'name="lk-windows-build" content="RC3.16"' in landing
+                  assert manifest['build_id']=='RC3.16' and manifest['version']=='12.4'
                   assert manifest['installer']=={'url':EXE,'size_bytes':SIZE,'sha256':HASH}
-                  assert NAME in landing and '196 134 490' in landing and HASH in landing
+                  assert NAME in landing and '196 588 836' in landing and HASH in landing
+                  assert 'RC3.15' not in home and 'RC3.15' not in landing
                   break
               except Exception:
-                  if time.monotonic()>deadline: raise
+                  if time.monotonic()>deadline:raise
                   time.sleep(10)
           assert manifest['channel']=='stable' and manifest['minimum_version']=='12.2'
-          report['manifest']={'version':manifest['version'],'build_id':manifest['build_id'],'size_bytes':SIZE,'sha256':HASH,'url':EXE}
+          assert set(manifest['notes'])=={'fr','ar','en'}
+          report['manifest']={'version':manifest['version'],'build_id':manifest['build_id'],'size_bytes':SIZE,'sha256':HASH,'url':EXE,'minimum_version':manifest['minimum_version']}
+          baseline='5c352463642fbfb6496f8d60c5ea33b879c4725b'
+          protected={'_includes/lk-home-content.html':'0f919b2094cf37fb91181a6dc352373d716cee98','assets/mobile/LK_Technologie_Pro_Mobile_1_0_25.apk':'022838e6081dabbab55de80f1d1d69a0ff569831','assets/mobile/lk-mobile-banner-v1.jpg':'d81db18cd189ccd2c5991d453f61804c3fb44531'}
+          for path,expected in protected.items():
+              api='https://api.github.com/repos/lktech05-sketch/LK-Technologie-Pro/contents/'+path+'?ref='+os.environ['GITHUB_SHA']
+              with urlopen(Request(api,headers={'Accept':'application/vnd.github+json'}),timeout=25) as response:metadata=json.load(response)
+              assert metadata['sha']==expected,'Protected file changed: '+path
+          report['protected_files_unchanged']=list(protected)
           with sync_playwright() as p:
               browser=p.chromium.launch(headless=True)
               context=browser.new_context(accept_downloads=True,viewport={'width':1440,'height':1000})
               page=context.new_page();page.on('pageerror',lambda error:errors.append(str(error)))
-              page.goto(BASE+'?build=RC3.15&audit='+str(time.time_ns()),wait_until='domcontentloaded')
-              page.wait_for_selector('meta[name="lk-windows-build"][content="RC3.15"]',state='attached')
-              assert 'RC3.15' in page.locator('.hero .badge').inner_text()
+              page.goto(BASE+'?build=RC3.16&audit='+str(time.time_ns()),wait_until='domcontentloaded')
+              page.wait_for_selector('meta[name="lk-windows-build"][content="RC3.16"]',state='attached')
+              assert 'RC3.16' in page.locator('.hero .badge').inner_text()
               page.wait_for_function("document.querySelectorAll('#guides .lesson:not(.guide-hidden)').length===4")
               counts=[page.locator('#guides .lesson:visible').count()]
               page.locator('#guidesMoreBtn').click();counts.append(page.locator('#guides .lesson:visible').count())
               page.locator('#guidesMoreBtn').click();counts.append(page.locator('#guides .lesson:visible').count())
               assert counts==[4,8,9] and page.locator('#guidesMoreBtn').is_hidden()
-              report['guides_visible_counts']=counts
+              report['guides_visible_counts']=counts;report['guides_more_hidden_at_nine']=True
               banner=page.locator('#mobileHeroBanner');banner.scroll_into_view_if_needed()
               page.wait_for_function("document.getElementById('mobileHeroBanner').naturalWidth>0")
               assert banner.is_visible() and page.locator('.mobile-visual-fallback').is_hidden()
               report['banner_visible']=True
               page.wait_for_function("[...document.querySelectorAll('[data-apk-link]')].every(a=>a.getAttribute('aria-disabled')==='false')")
               assert page.locator('[data-apk-link]').count()==2
-              for a in page.locator('[data-apk-link]').all():
-                  assert a.get_attribute('href')=='assets/mobile/LK_Technologie_Pro_Mobile_1_0_25.apk'
-              report['android_version']='1.0.25'
+              for a in page.locator('[data-apk-link]').all():assert a.get_attribute('href')=='assets/mobile/LK_Technologie_Pro_Mobile_1_0_25.apk'
+              assert '1.0.25' in page.locator('.mobile-badge').inner_text()
+              report['android_version']='1.0.25';report['android_download_buttons_checked']=2
+              page.locator('#langBtn').click()
+              assert page.locator('html').get_attribute('lang')=='ar' and page.locator('html').get_attribute('dir')=='rtl'
+              assert 'RC3.16' in page.locator('.hero .badge').inner_text()
+              page.locator('#langBtn').click();assert page.locator('html').get_attribute('lang')=='fr'
+              report['homepage_languages']='FR/AR/RTL PASS'
               page.goto(BASE+'download-v12-4.html?audit='+str(time.time_ns()),wait_until='domcontentloaded')
               link=page.locator('#downloadV124')
               assert link.is_visible() and link.get_attribute('href')==EXE
-              assert 'RC3.15' in page.locator('#buildNotice').inner_text()
-              assert page.locator('#sameVersionNotice').is_visible()
+              assert 'RC3.16' in page.locator('#buildNotice').inner_text()
+              assert page.locator('#sameVersionNotice').is_visible() and page.locator('#dataRepairNotice').is_visible()
+              assert 'BaridiMob' in page.locator('#buildNotice').inner_text()
               page.locator('#langBtn').click()
               assert page.locator('html').get_attribute('lang')=='ar' and page.locator('html').get_attribute('dir')=='rtl'
-              assert 'تحميل' in link.inner_text()
-              assert 'RC3.15' in page.locator('#sameVersionNotice').inner_text()
-              page.locator('#langBtn').click()
-              assert page.locator('html').get_attribute('lang')=='fr'
-              report['landing_languages']='FR/AR/RTL PASS'
+              assert 'تحميل' in link.inner_text() and 'RC3.16' in page.locator('#sameVersionNotice').inner_text()
+              assert 'تلقائي' in page.locator('#dataRepairNotice').inner_text()
               page.set_viewport_size({'width':390,'height':844})
               assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-              report['landing_390px_no_overflow']=True
+              page.locator('#langBtn').click();assert page.locator('html').get_attribute('lang')=='fr'
+              assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+              report['landing_languages']='FR/AR/RTL PASS';report['landing_390px_no_overflow_fr_ar']=True
+              report['manual_same_version_and_historical_data_notices_visible']=True
               page.set_viewport_size({'width':1440,'height':1000})
               page.goto(BASE+'?browser_download='+str(time.time_ns()),wait_until='domcontentloaded')
               homepage_link=page.locator('#download a[href*="download-v12-4.html"]').first
               assert homepage_link.get_attribute('href')=='download-v12-4.html?start=1'
-              with page.expect_download(timeout=90000) as downloaded:
-                  homepage_link.click()
-              download=downloaded.value
-              assert download.suggested_filename==NAME,download.suggested_filename
+              with page.expect_download(timeout=90000) as downloaded:homepage_link.click()
+              download=downloaded.value;assert download.suggested_filename==NAME
               downloaded_file=Path(download.path());assert download.failure() is None
               assert downloaded_file.stat().st_size==SIZE
-              with downloaded_file.open('rb') as f: actual_hash=hashlib.file_digest(f,'sha256').hexdigest()
+              with downloaded_file.open('rb') as f:actual_hash=hashlib.file_digest(f,'sha256').hexdigest()
               assert actual_hash==HASH
               report['download']={'completed':True,'filename':download.suggested_filename,'size_bytes':SIZE,'sha256':actual_hash,'started_from_official_homepage':True,'installer_executed':False}
               assert not errors,errors
-              report.update(result='PASS',javascript_page_errors=errors,checked_at_utc=datetime.now(timezone.utc).isoformat(),browser=browser.version)
+              report.update(result='PASS',javascript_page_errors=errors,checked_at_utc=datetime.now(timezone.utc).isoformat(),browser=browser.version,apk_installed_or_executed=False,shop_functional_tests_performed=False)
               browser.close()
-          print('LK_RC315_BROWSER_BEGIN');print(json.dumps(report,ensure_ascii=False,indent=2));print('LK_RC315_BROWSER_END')
-          with open(os.environ['GITHUB_STEP_SUMMARY'],'w',encoding='utf-8') as f:
-              f.write('## RC3.15 live download verification\n\n```json\n'+json.dumps(report,ensure_ascii=False,indent=2)+'\n```\n')
+          print('LK_RC316_BROWSER_BEGIN');print(json.dumps(report,ensure_ascii=False,indent=2));print('LK_RC316_BROWSER_END')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'w',encoding='utf-8') as f:f.write('## RC3.16 live download verification\n\n```json\n'+json.dumps(report,ensure_ascii=False,indent=2)+'\n```\n')

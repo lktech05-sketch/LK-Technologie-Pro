@@ -49,7 +49,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          import base64, hashlib, html, json, os
+          import base64, html, json, os
           from pathlib import Path
           from urllib.parse import quote
           from urllib.request import Request, urlopen
@@ -92,7 +92,7 @@ jobs:
           verification.update(filename=NEW,asset_url=URL,old_installer_retained=True)
           changes={}
           landing=read('download-v12-4.html')
-          for old,new in [(OLD,NEW),(OLD_SHA,SHA),('196,11','196,13'),('196.11','196.13'),('196 113 272','196 134 490'),('196,113,272','196,134,490')]:
+          for old,new in [(OLD,NEW),(OLD_SHA,SHA),('196 113 272','196 134 490'),('196,113,272','196,134,490'),('196,11','196,13'),('196.11','196.13')]:
               landing=change(landing,old,new)
           landing=change(landing,'V12.4 — Téléchargement disponible','V12.4 — Correctif RC3.15 disponible')
           landing=change(landing,'V12.4 — متاحة للتحميل','V12.4 — تصحيح RC3.15 متاح للتحميل')
@@ -125,7 +125,6 @@ jobs:
           assert manifest['minimum_version']=='12.2' and manifest['channel']=='stable'
           changes['updates/update.json']=json.dumps(manifest,ensure_ascii=False,indent=2)+'\n'
           changes['updates/rc3-15-verification.json']=json.dumps(verification,ensure_ascii=False,indent=2)+'\n'
-          # Prepare objects only: no branch update and no automatic publication here.
           parent=api('/git/commits/'+HEAD)
           tree=api('/git/trees','POST',{'base_tree':parent['tree']['sha'],'tree':[{'path':path,'mode':'100644','type':'blob','content':text} for path,text in changes.items()]})
           print('LK_RC315_PREPARED_BEGIN')

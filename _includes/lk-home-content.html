@@ -92,7 +92,7 @@
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
 
     /* Android mobile + progressive guide listing */
-    .lesson.guide-hidden{display:none!important}
+    .lesson.guide-hidden{display:none!important}.lesson[hidden]{display:none!important}
     .guide-actions{display:flex;justify-content:center;margin-top:28px}
     .guide-more{border:1px solid #cfc7ff;background:#fff;color:#4b35c0;padding:13px 22px;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px #0f203510}
     .guide-more:hover{transform:translateY(-1px)}
@@ -374,6 +374,16 @@
  <h3 data-fr="Gestion des fournisseurs" data-ar="إدارة الموردين">Gestion des fournisseurs</h3>
  <p data-fr="Gérez les fournisseurs, les achats, les règlements et consultez leur historique." data-ar="إدارة الموردين والمشتريات والتسديدات والاطلاع على السجل الكامل.">Gérez les fournisseurs, les achats, les règlements et consultez leur historique.</p>
  <a class="lesson-download" href="assets/v12-1/videos/guide-09.mp4" download="LK_Technologie_Guide_09.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
+ </article>
+<article class="lesson" id="guide-10" hidden>
+ <div class="lesson-top"><span class="lesson-number">10</span><span class="lesson-duration" aria-label="226 secondes">3:46</span></div>
+ <video controls playsinline preload="none" poster="assets/v12-1/screens/stock.png" aria-label="LK.Technologie Pro | Guide d’utilisation #10 — Gestion des pièces et du stock" data-video-title-fr="LK.Technologie Pro | Guide d’utilisation #10 — Gestion des pièces et du stock" data-video-title-ar="دليل الاستخدام 10 — إدارة القطع والمخزون">
+ <source src="assets/v12-1/videos/guide-10.mp4" type="video/mp4">
+ <p><a href="assets/v12-1/videos/guide-10.mp4" data-fr="Télécharger la vidéo" data-ar="تحميل الفيديو">Télécharger la vidéo</a></p></video>
+ <div class="lesson-body"><p class="lesson-kicker" data-fr="Guide d’utilisation #10" data-ar="دليل الاستخدام #10">Guide d’utilisation #10</p>
+ <h3 data-fr="Gestion des pièces et du stock" data-ar="إدارة القطع والمخزون">Gestion des pièces et du stock</h3>
+ <p data-fr="Ajoutez et modifiez les produits, gérez les codes-barres, les prix, les étiquettes, le catalogue et les mouvements de stock." data-ar="إضافة وتعديل المنتجات، إدارة الباركود والأسعار، بطاقات السعر، الكتالوج وحركة المخزون.">Ajoutez et modifiez les produits, gérez les codes-barres, les prix, les étiquettes, le catalogue et les mouvements de stock.</p>
+ <a class="lesson-download" href="assets/v12-1/videos/guide-10.mp4" download="LK_Technologie_Guide_10.mp4" data-fr="Télécharger la vidéo ↓" data-ar="تحميل الفيديو ↓">Télécharger la vidéo ↓</a></div>
  </article></div>
  <div class="guide-actions"><button class="guide-more" id="guidesMoreBtn" type="button" data-fr="Afficher plus de vidéos" data-ar="عرض المزيد من الفيديوهات">Afficher plus de vidéos</button></div>
  </div></section>
@@ -517,16 +527,36 @@
 
   const guideItems=[...document.querySelectorAll('#guides .lesson')];
   const guidesMoreBtn=document.getElementById('guidesMoreBtn');
+  const guidesIntro=document.querySelector('#guides .title p');
   let visibleGuides=4;
+  function activeGuideItems(){return guideItems.filter(item=>!item.hasAttribute('hidden'));}
   function updateGuideVisibility(){
-    guideItems.forEach((item,index)=>item.classList.toggle('guide-hidden',index>=visibleGuides));
-    if(guidesMoreBtn)guidesMoreBtn.hidden=visibleGuides>=guideItems.length;
+    const active=activeGuideItems();
+    active.forEach((item,index)=>item.classList.toggle('guide-hidden',index>=visibleGuides));
+    guideItems.filter(item=>item.hasAttribute('hidden')).forEach(item=>item.classList.add('guide-hidden'));
+    if(guidesMoreBtn)guidesMoreBtn.hidden=visibleGuides>=active.length;
   }
   if(guidesMoreBtn)guidesMoreBtn.addEventListener('click',()=>{
-    visibleGuides=Math.min(visibleGuides+4,guideItems.length);
+    visibleGuides=Math.min(visibleGuides+4,activeGuideItems().length);
     updateGuideVisibility();
   });
   updateGuideVisibility();
+
+  const guide10=document.getElementById('guide-10');
+  const guide10Url='assets/v12-1/videos/guide-10.mp4';
+  function setGuide10State(available){
+    if(!guide10)return;
+    guide10.toggleAttribute('hidden',!available);
+    if(available&&guidesIntro){
+      guidesIntro.dataset.fr='10 leçons pour découvrir l’interface et les principales fonctions de LK.Technologie Pro. Voix arabe, sous-titres français.';
+      guidesIntro.dataset.ar='10 دروس للتعرف على الواجهة وأهم وظائف LK.Technologie Pro. صوت عربي وترجمة فرنسية.';
+      guidesIntro.textContent=ar?guidesIntro.dataset.ar:guidesIntro.dataset.fr;
+    }
+    updateGuideVisibility();
+  }
+  fetch(guide10Url,{method:'HEAD',cache:'no-store'})
+    .then(response=>setGuide10State(response.ok))
+    .catch(()=>setGuide10State(false));
 
   const apkUrl='assets/mobile/LK_Technologie_Pro_Mobile_1_0_25.apk';
   const apkLinks=[...document.querySelectorAll('[data-apk-link]')];

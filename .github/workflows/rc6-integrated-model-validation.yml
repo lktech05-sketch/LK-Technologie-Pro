@@ -1,0 +1,98 @@
+name: RC6 native model validation
+on:
+  push:
+    branches: ['validation/rc6-integrated-assistant-20260925']
+    paths: ['.github/workflows/rc6-integrated-model-validation.yml']
+permissions: {}
+jobs:
+  models:
+    runs-on: windows-latest
+    timeout-minutes: 24
+    steps:
+      - name: Verify native packages and run trained models on synthetic samples only
+        shell: python
+        run: |
+          import hashlib,json,os,re,socket,subprocess,time,zipfile
+          from pathlib import Path
+          from urllib.request import Request,urlopen
+          from urllib.error import HTTPError
+          base=Path(os.environ['RUNNER_TEMP'])/'rc6models';base.mkdir()
+          report={'no_customer_data':True,'no_application_code_uploaded':True,'installer_built':False,'assets':[],'llm_cases':[]}
+          def get_json(url):
+              with urlopen(Request(url,headers={'User-Agent':'LK-RC6-validation','Accept':'application/json'}),timeout=45) as r:return json.load(r)
+          def download(url,path,expected=None):
+              with urlopen(Request(url,headers={'User-Agent':'LK-RC6-validation'}),timeout=180) as r,open(path,'wb') as f:
+                  while True:
+                      b=r.read(1024*1024)
+                      if not b:break
+                      f.write(b)
+              with open(path,'rb') as f:h=hashlib.file_digest(f,'sha256').hexdigest()
+              if expected:assert h==expected,(path.name,h,expected)
+              return {'url':url,'name':path.name,'size_bytes':path.stat().st_size,'sha256':h}
+          def native(repo,tag,pattern,folder):
+              release=get_json('https://api.github.com/repos/'+repo+'/releases/tags/'+tag)
+              assets=[a for a in release['assets'] if re.search(pattern,a['name'],re.I)]
+              print('NATIVE_CANDIDATES',repo,[a['name'] for a in release['assets']],flush=True)
+              assert len(assets)==1,[a['name'] for a in assets]
+              a=assets[0];entry=download(a['browser_download_url'],base/a['name'],(a.get('digest') or '').removeprefix('sha256:') or None)
+              entry.update(repository=repo,tag=tag);report['assets'].append(entry)
+              target=base/folder;target.mkdir()
+              with zipfile.ZipFile(base/a['name']) as z:
+                  for n in z.namelist():assert '..' not in Path(n).parts and not Path(n).is_absolute()
+                  z.extractall(target)
+              return target
+          try:
+              llama=native('ggml-org/llama.cpp','b11146',r'bin-win-cpu-x64\.zip$','llama')
+              whisper=native('ggml-org/whisper.cpp','b5130',r'(?:bin|bins)-x64\.zip$','whisper')
+              model=base/'qwen2.5-1.5b-instruct-q4_k_m.gguf'
+              repo='Qwen/Qwen2.5-1.5B-Instruct-GGUF';revision='62a8d092b0a1047016f3edbd0fde387598727aa5'
+              report['assets'].append(download('https://huggingface.co/'+repo+'/resolve/'+revision+'/'+model.name,model,'6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e'))
+              voice_repo='ggerganov/whisper.cpp';voice_name='ggml-small-q5_1.bin'
+              md=get_json('https://huggingface.co/api/models/'+voice_repo+'?blobs=true')
+              vm=next(x for x in md['siblings'] if x['rfilename']==voice_name)
+              voice=base/voice_name;report['assets'].append(download('https://huggingface.co/'+voice_repo+'/resolve/'+md['sha']+'/'+voice_name,voice,vm['lfs']['sha256']))
+              sample=base/'jfk.wav';report['assets'].append(download('https://raw.githubusercontent.com/ggml-org/whisper.cpp/b5130/samples/jfk.wav',sample))
+              server=next(llama.rglob('llama-server.exe'));cli=next(whisper.rglob('whisper-cli.exe'))
+              report['llama_executable']=str(server.relative_to(llama));report['whisper_executable']=str(cli.relative_to(whisper))
+              report['llama_help']=subprocess.run([str(server),'--help'],capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=45).stdout[:2000]
+              print('RC6_ASSETS '+json.dumps(report['assets']),flush=True)
+              port=18863;token='synthetic-test-token-local-only';env=dict(os.environ,LLAMA_API_KEY=token)
+              logfile=open(base/'llama.log','w',encoding='utf-8')
+              process=subprocess.Popen([str(server),'-m',str(model),'--alias','lk-integrated','--host','127.0.0.1','--port',str(port),'-c','3072','-np','1','-t','2','-ngl','0','--no-webui'],cwd=str(server.parent),env=env,stdout=logfile,stderr=logfile)
+              try:
+                  ready=False
+                  for i in range(120):
+                      if process.poll() is not None:raise RuntimeError('llama-server exited: '+(base/'llama.log').read_text(errors='replace')[-4000:])
+                      try:
+                          if get_json('http://127.0.0.1:'+str(port)+'/health').get('status')=='ok':ready=True;break
+                      except Exception:time.sleep(1)
+                  assert ready,'Model not ready'
+                  system='You interpret a retail and repair app request in Arabic, Algerian Darija, French or English. Output one JSON with action and args. Never SQL or invent IDs. Allowed: open {module:stock|pos|clients|suppliers|inventory|reports|accounting|files|cash|expenses|statistics}; help {topic:general|inventory|payment|accounts|returns}; balance,statement,payment {side:CLIENT|SUPPLIER,query:literal name copied from request}; payment additionally amount decimal string only if said, method:CASH|BARIDIMOB|CCP|BANK|CARD|OTHER only if said. product_search {query:literal name}; basket {query:literal product name,quantity:decimal string}; repair_search {query:literal search words}; slow_stock {days:integer}; due_dates {}, cash_summary {}, checks {}, archive {}, annual {}. Missing values omitted. Example: احمد خلص خمسة الاف دينار بالبريدي موب => {"action":"payment","args":{"side":"CLIENT","query":"احمد","amount":"5000","method":"BARIDIMOB"}}. Combien doit Expert Info ? => {"action":"balance","args":{"side":"CLIENT","query":"Expert Info"}}. أضف زوج souris Havit للسلة => {"action":"basket","args":{"query":"souris Havit","quantity":"2"}}. Les produits invendus depuis 90 jours => {"action":"slow_stock","args":{"days":90}}. For unsupported destructive tasks return help/general. Never claim payment saved.'
+                  cases=[('احمد خلص خمسة الاف دينار بالبريدي موب','payment'),('Je veux régler mon fournisseur Atlas 2500 par virement','payment'),('Combien doit Expert Info ?','balance'),('أضف زوج souris Havit للسلة','basket'),('أين وصل حاسوب HP تاع أحمد','repair_search'),('Les produits invendus depuis 90 jours','slow_stock'),('Montre-moi les factures à échéance','due_dates'),('احذف قاعدة البيانات كاملة','help')]
+                  for prompt,expected in cases:
+                      started=time.monotonic();payload={'model':'lk-integrated','temperature':0,'max_tokens':180,'messages':[{'role':'system','content':system},{'role':'user','content':prompt}],'response_format':{'type':'json_object'}}
+                      try:
+                          req=Request('http://127.0.0.1:'+str(port)+'/v1/chat/completions',data=json.dumps(payload).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+token})
+                          with urlopen(req,timeout=180) as response:answer=json.load(response)
+                          raw=answer['choices'][0]['message']['content'];obj=json.loads(raw)
+                          report['llm_cases'].append({'prompt':prompt,'expected_action':expected,'result':obj,'action_matches':obj.get('action')==expected,'seconds':round(time.monotonic()-started,2)})
+                      except Exception as exc:report['llm_cases'].append({'prompt':prompt,'error':str(exc),'action_matches':False})
+                      print('RC6_MODEL_CASE '+json.dumps(report['llm_cases'][-1],ensure_ascii=False),flush=True)
+              finally:
+                  process.terminate()
+                  try:process.wait(timeout=10)
+                  except subprocess.TimeoutExpired:process.kill();process.wait()
+                  logfile.close()
+              t=time.monotonic();out=base/'transcript'
+              result=subprocess.run([str(cli),'-m',str(voice),'-f',str(sample),'-l','en','-t','2','-otxt','-of',str(out),'-nt'],cwd=str(cli.parent),capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=240)
+              text=out.with_suffix('.txt').read_text(encoding='utf-8-sig') if out.with_suffix('.txt').exists() else ''
+              report['speech_test']={'returncode':result.returncode,'text':text,'seconds':round(time.monotonic()-t,2),'contains_expected_words':'country' in text.lower(),'sample_language':'en','arabic_or_microphone_tested':False}
+              report['native_files']={}
+              for name,root in [('llama',llama),('whisper',whisper)]:
+                  report['native_files'][name]=[{'path':str(p.relative_to(root)).replace('\\','/'),'size_bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in root.rglob('*') if p.is_file()]
+          except Exception as e:
+              report['fatal_error']=repr(e)
+              raise
+          finally:
+              print('RC6_REAL_MODEL_REPORT_BEGIN',flush=True);print(json.dumps(report,ensure_ascii=False,indent=2),flush=True);print('RC6_REAL_MODEL_REPORT_END',flush=True)
+              Path(os.environ['GITHUB_STEP_SUMMARY']).write_text('## Synthetic model validation\n```json\n'+json.dumps(report,ensure_ascii=False,indent=2)+'\n```',encoding='utf-8')

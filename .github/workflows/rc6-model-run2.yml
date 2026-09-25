@@ -1,0 +1,23 @@
+name: RC6 Windows trained model validation retry
+on:
+  push:
+    branches: ['validation/rc6-integrated-assistant-20260925']
+    paths: ['.github/workflows/rc6-model-run2.yml']
+permissions: {}
+jobs:
+  models:
+    runs-on: windows-latest
+    timeout-minutes: 24
+    steps:
+      - name: Run reviewed synthetic harness with exact CPU asset
+        shell: python
+        run: |
+          import textwrap
+          from urllib.request import urlopen
+          url='https://raw.githubusercontent.com/lktech05-sketch/LK-Technologie-Pro/9a6efa07fb16b8918cd857eb7a03105468cfd1dd/.github/workflows/rc6-integrated-model-validation.yml'
+          with urlopen(url,timeout=30) as r:source=r.read(30000).decode('utf-8')
+          code=textwrap.dedent(source.split('        run: |\n',1)[1])
+          old="r'(?:bin|bins)-x64\\.zip$'";new="r'^whisper-bin-x64\\.zip$'"
+          assert code.count(old)==1
+          code=code.replace(old,new)
+          exec(compile(code,'reviewed_synthetic_model_validation','exec'))

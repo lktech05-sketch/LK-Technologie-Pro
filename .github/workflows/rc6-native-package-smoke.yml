@@ -1,0 +1,63 @@
+name: RC6 native packaging smoke
+on:
+  push:
+    branches: ['validation/rc6-integrated-assistant-20260925']
+    paths: ['.github/workflows/rc6-native-package-smoke.yml']
+permissions: {}
+jobs:
+  native:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check native subset and Windows job cleanup without shop application
+        shell: python
+        run: |
+          import ctypes,hashlib,json,os,subprocess,sys,tempfile,zipfile
+          from ctypes import wintypes as W
+          from pathlib import Path
+          from urllib.request import urlopen
+          sys.stdout.reconfigure(encoding='utf-8')
+          root=Path(os.environ['RUNNER_TEMP'])/'native-smoke';root.mkdir()
+          def download(url,path,sha):
+              with urlopen(url,timeout=120) as r,open(path,'wb') as f:
+                  while True:
+                      b=r.read(1024*1024)
+                      if not b:break
+                      f.write(b)
+              with open(path,'rb') as f:assert hashlib.file_digest(f,'sha256').hexdigest()==sha
+          z=root/'whisper.zip'
+          download('https://github.com/ggml-org/whisper.cpp/releases/download/b5130/whisper-bin-x64.zip',z,'f9ec6c52a2e949b62ab51fa21d0d497958f9e41c3010c157c4e42932d5316f3c')
+          with zipfile.ZipFile(z) as archive:
+              for info in archive.infolist():
+                  p=Path(info.filename);assert '..' not in p.parts and not p.is_absolute()
+                  if p.name=='whisper-cli.exe' or p.suffix.lower()=='.dll' and (p.name.lower().startswith('ggml') or p.name.lower()=='whisper.dll'):archive.extract(info,root)
+          model=root/'ggml-small-q5_1.bin'
+          download('https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small-q5_1.bin',model,'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb')
+          wave=root/'public.wav'
+          download('https://raw.githubusercontent.com/ggml-org/whisper.cpp/b5130/samples/jfk.wav',wave,'59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e')
+          cli=next(root.rglob('whisper-cli.exe'))
+          class Basic(ctypes.Structure):
+              _fields_=[('process_time',ctypes.c_longlong),('job_time',ctypes.c_longlong),('flags',W.DWORD),('min_work',ctypes.c_size_t),('max_work',ctypes.c_size_t),('active',W.DWORD),('affinity',ctypes.c_size_t),('priority',W.DWORD),('scheduling',W.DWORD)]
+          class IO(ctypes.Structure):_fields_=[(n,ctypes.c_ulonglong) for n in ('readop','writeop','otherop','readbytes','writebytes','otherbytes')]
+          class Extended(ctypes.Structure):_fields_=[('basic',Basic),('io',IO),('process_mem',ctypes.c_size_t),('job_mem',ctypes.c_size_t),('peak_process',ctypes.c_size_t),('peak_job',ctypes.c_size_t)]
+          k=ctypes.WinDLL('kernel32',use_last_error=True)
+          k.CreateJobObjectW.restype=W.HANDLE;k.CreateJobObjectW.argtypes=[ctypes.c_void_p,W.LPCWSTR]
+          k.SetInformationJobObject.argtypes=[W.HANDLE,ctypes.c_int,ctypes.c_void_p,W.DWORD]
+          k.AssignProcessToJobObject.argtypes=[W.HANDLE,W.HANDLE];k.CloseHandle.argtypes=[W.HANDLE]
+          def attach(process):
+              h=k.CreateJobObjectW(None,None);assert h
+              info=Extended();info.basic.flags=0x2000
+              assert k.SetInformationJobObject(h,9,ctypes.byref(info),ctypes.sizeof(info)),ctypes.get_last_error()
+              assert k.AssignProcessToJobObject(h,int(process._handle)),ctypes.get_last_error()
+              return h
+          proc=subprocess.Popen([str(cli),'-m',str(model),'-f',str(wave),'-l','auto','-t','2','-otxt','-of',str(root/'out'),'-nt'],cwd=cli.parent,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW|subprocess.BELOW_NORMAL_PRIORITY_CLASS)
+          job=attach(proc)
+          try:code=proc.wait(timeout=180)
+          finally:k.CloseHandle(job)
+          text=(root/'out.txt').read_text(encoding='utf-8-sig');assert code==0 and 'country' in text.lower()
+          dummy=subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)'],creationflags=subprocess.CREATE_NO_WINDOW)
+          job=attach(dummy);k.CloseHandle(job);exit_code=dummy.wait(timeout=5)
+          class Status(ctypes.Structure):
+              _fields_=[('length',ctypes.c_ulong),('load',ctypes.c_ulong)]+[(n,ctypes.c_ulonglong) for n in ('total','available','totalpage','availpage','virtual','availvirtual','extended')]
+          s=Status();s.length=ctypes.sizeof(s);assert ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(s)) and s.available>0
+          print('RC6_NATIVE_PACKAGE_RESULT '+json.dumps({'status':'PASS','minimal_whisper_dll_subset':True,'auto_language_public_english_sample':True,'transcript':text.strip(),'windows_job_attach':True,'kill_on_close':dummy.poll() is not None,'memory_status_valid':True,'application_exe_built':False,'actual_microphone':False,'arabic_speech_tested':False,'no_shop_source_or_customer_data':True}))

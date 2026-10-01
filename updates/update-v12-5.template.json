@@ -5,9 +5,9 @@
   "version": "12.5",
   "minimum_version": "12.2",
   "notes": {
-    "fr": "V12.5 : interface Lumina harmonisée, POS enrichi, Client comptoir ID 0, Info vente, Devis, Facture pro forma, Factures, TVA, Avoirs numérotés, impression A4/A5/70 mm et personnalisation étendue. Avant la mise à jour, effectuez une sauvegarde récente et installez la même version sur tous les postes.",
-    "ar": "V12.5: واجهة Lumina موحدة، POS مطور، Client comptoir ID 0، Info للبيع، Devis، Facture pro forma، Factures، TVA، Avoirs مرقمة، طباعة A4/A5/70mm وتخصيص موسع. قبل التحديث أنشئ نسخة احتياطية حديثة وثبّت نفس الإصدار على جميع الأجهزة.",
-    "en": "V12.5: harmonized Lumina UI, enhanced POS, Client comptoir ID 0, sale Info, quotations, pro forma invoices, invoices, VAT, numbered credit notes, A4/A5/70 mm printing and expanded customization. Back up first and install the same version on every computer."
+    "fr": "V12.5 : interface harmonisée, POS enrichi, Client comptoir ID 0, Info vente, Devis, Facture pro forma, Factures, TVA, Avoirs numérotés, impression A4/A5/70 mm et personnalisation étendue. Avant la mise à jour, effectuez une sauvegarde récente et installez la même version sur tous les postes.",
+    "ar": "V12.5: واجهة موحدة، POS مطور، Client comptoir ID 0، Info للبيع، Devis، Facture pro forma، Factures، TVA، Avoirs مرقمة، طباعة A4/A5/70mm وتخصيص موسع. قبل التحديث أنشئ نسخة احتياطية حديثة وثبّت نفس الإصدار على جميع الأجهزة.",
+    "en": "V12.5: harmonized interface, enhanced POS, Client comptoir ID 0, sale Info, quotations, pro forma invoices, invoices, VAT, numbered credit notes, A4/A5/70 mm printing and expanded customization. Back up first and install the same version on every computer."
   },
   "installer": {
     "url": "https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.5/LK_Technologie_Pro_V12_5_Setup.exe",

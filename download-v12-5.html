@@ -32,7 +32,7 @@
     <h2 data-fr="Télécharger le programme d’installation Windows" data-ar="تحميل ملف التثبيت لنظام Windows">Télécharger le programme d’installation Windows</h2>
     <p data-fr="Le programme d’installation officiel V12.5 sera téléchargé depuis la publication officielle LK.Technologie Pro." data-ar="يتم تحميل ملف التثبيت الرسمي V12.5 من الإصدار الرسمي لـ LK.Technologie Pro.">Le programme d’installation officiel V12.5 sera téléchargé depuis la publication officielle LK.Technologie Pro.</p>
     <div class="file"><code>LK_Technologie_Pro_V12_5_Setup.exe</code></div>
-    <p class="muted" id="fileMeta" style="margin-top:12px" data-fr="Taille et SHA-256 : renseignés automatiquement après la mise en ligne du fichier final." data-ar="الحجم وSHA-256: يتم إدخالهما بعد رفع الملف النهائي.">Taille et SHA-256 : renseignés automatiquement après la mise en ligne du fichier final.</p>
+    <p class="muted" id="fileMeta" style="margin-top:12px" data-fr="Taille : 200,33 Mo (200 327 572 octets) · SHA-256 : 05d5b3032b44fdba13c4391c93ab785d48a58bba6e1566787642e344301ce8a7" data-ar="الحجم: 200.33 MB (200,327,572 بايت) · SHA-256: 05d5b3032b44fdba13c4391c93ab785d48a58bba6e1566787642e344301ce8a7">Taille et SHA-256 : renseignés automatiquement après la mise en ligne du fichier final.</p>
     <div class="actions">
       <a class="btn btn-primary" id="downloadV125" href="https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/V12.5/LK_Technologie_Pro_V12_5_Setup.exe" download="LK_Technologie_Pro_V12_5_Setup.exe" data-fr="⬇ Télécharger V12.5 pour Windows" data-ar="⬇ تحميل V12.5 لنظام Windows">⬇ Télécharger V12.5 pour Windows</a>
       <a class="btn btn-outline" href="/#mobile" data-fr="Application Android" data-ar="تطبيق Android">Application Android</a>
@@ -64,7 +64,7 @@
     try{localStorage.setItem('lk-site-language',ar?'ar':'fr');}catch(e){}
   }
   let saved='fr';try{saved=localStorage.getItem('lk-site-language')||'fr';}catch(e){}
-  setLanguage(saved==='ar');button.addEventListener('click',()=>setLanguage(document.documentElement.lang!=='ar'));
+  setLanguage(saved==='ar');button.addEventListener('click',()=>setLanguage(document.documentElement.lang!=='ar'));const q=new URLSearchParams(location.search);if(q.get('start')==='1'){setTimeout(()=>document.getElementById('downloadV125').click(),500);}
 })();
 </script>
 </body>

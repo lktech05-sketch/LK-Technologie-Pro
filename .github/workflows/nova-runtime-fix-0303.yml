@@ -25,17 +25,25 @@ jobs:
       - name: Rehydrate Nova source
         shell: pwsh
         run: |
-          $parts = Get-ChildItem "ci/nova-runtime-0303/src.part*" | Sort-Object Name
-          if ($parts.Count -ne 16) { throw "Expected 16 source chunks, got $($parts.Count)" }
-          $b64 = ($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          # src.part00..09 are one complete Base64 archive.
+          # src.part10..15 belong to a second payload and must never be appended.
+          $parts = 0..9 | ForEach-Object {
+            $name = "ci/nova-runtime-0303/src.part{0:D2}" -f $_
+            if (-not (Test-Path $name)) { throw "Missing source chunk: $name" }
+            Get-Item $name
+          }
+          if ($parts.Count -ne 10) { throw "Expected 10 source chunks, got $($parts.Count)" }
+          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           $bytes = [Convert]::FromBase64String($b64)
           $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
           Write-Host "Rehydrated source archive SHA256=$sha"
           $tar = Join-Path $env:RUNNER_TEMP "nova-src.tar.gz"
           [IO.File]::WriteAllBytes($tar, $bytes)
           $src = Join-Path $env:RUNNER_TEMP "nova-src"
+          if (Test-Path $src) { Remove-Item $src -Recurse -Force }
           New-Item -ItemType Directory -Force -Path $src | Out-Null
           tar -xzf $tar -C $src
+          if ($LASTEXITCODE -ne 0) { throw "Nova source archive extraction failed" }
           if (-not (Test-Path (Join-Path $src "src\Nova.Server\Nova.Server.csproj"))) {
             throw "Nova.Server.csproj missing after extraction"
           }
@@ -131,4 +139,4 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-# trigger: all chunks present; tar extraction is authoritative
+# source payload: use only src.part00..09

@@ -22,31 +22,31 @@ jobs:
         with:
           dotnet-version: '10.0.401'
 
-      - name: Rehydrate Nova source
+      - name: Rehydrate verified Nova source
         shell: pwsh
         run: |
-          # src.part00..09 are one complete Base64 archive.
-          # src.part10..15 belong to a second payload and must never be appended.
-          $parts = 0..9 | ForEach-Object {
-            $name = "ci/nova-runtime-0303/src.part{0:D2}" -f $_
-            if (-not (Test-Path $name)) { throw "Missing source chunk: $name" }
+          $parts = 0..5 | ForEach-Object {
+            $name = "ci/nova-runtime-0303/src.clean.part{0:D2}" -f $_
+            if (-not (Test-Path $name)) { throw "Missing clean source chunk: $name" }
             Get-Item $name
           }
-          if ($parts.Count -ne 10) { throw "Expected 10 source chunks, got $($parts.Count)" }
           $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           $bytes = [Convert]::FromBase64String($b64)
           $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
-          Write-Host "Rehydrated source archive SHA256=$sha"
-          $tar = Join-Path $env:RUNNER_TEMP "nova-src.tar.gz"
-          [IO.File]::WriteAllBytes($tar, $bytes)
+          Write-Host "Clean Nova source archive SHA256=$sha"
+          if ($sha -ne "edea311b089a0758cec81b7838c7e9a467bcbf3c7533a63777de6c2c088ae6f3") {
+            throw "Clean source SHA256 mismatch"
+          }
+          $archive = Join-Path $env:RUNNER_TEMP "nova-src.tar.xz"
+          [IO.File]::WriteAllBytes($archive, $bytes)
           $src = Join-Path $env:RUNNER_TEMP "nova-src"
           if (Test-Path $src) { Remove-Item $src -Recurse -Force }
           New-Item -ItemType Directory -Force -Path $src | Out-Null
-          tar -xzf $tar -C $src
-          if ($LASTEXITCODE -ne 0) { throw "Nova source archive extraction failed" }
-          if (-not (Test-Path (Join-Path $src "src\Nova.Server\Nova.Server.csproj"))) {
-            throw "Nova.Server.csproj missing after extraction"
-          }
+          tar -xf $archive -C $src
+          if ($LASTEXITCODE -ne 0) { throw "Nova clean source archive extraction failed" }
+          $project = Join-Path $src "src\Nova.Server\Nova.Server.csproj"
+          if (-not (Test-Path $project)) { throw "Nova.Server.csproj missing after clean extraction" }
+          Write-Host "SOURCE_OK: $project"
           "NOVA_SRC=$src" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Publish Nova.Server single-file self-contained
@@ -66,9 +66,8 @@ jobs:
           if (-not (Test-Path $exe)) { throw "Nova.Server.exe missing" }
           if (Test-Path (Join-Path $out "Nova.Core.dll")) { throw "Nova.Core.dll is still a loose dependency" }
           if (Test-Path (Join-Path $out "Nova.Data.dll")) { throw "Nova.Data.dll is still a loose dependency" }
-          $items = Get-ChildItem $out -File
           Write-Host "Published files:"
-          $items | Format-Table Name,Length
+          Get-ChildItem $out -File | Format-Table Name,Length
           "NOVA_OUT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Windows startup smoke test
@@ -107,11 +106,9 @@ jobs:
             $env:LOCALAPPDATA = $oldLocal
             throw "Single-file Nova.Server did not become healthy on Windows"
           }
-          try {
-            $health = Invoke-RestMethod "http://127.0.0.1:5197/health" -TimeoutSec 3
-            Write-Host "Health payload:"
-            $health | ConvertTo-Json -Depth 5
-          } catch {}
+          $health = Invoke-RestMethod "http://127.0.0.1:5197/health" -TimeoutSec 3
+          Write-Host "Health payload:"
+          $health | ConvertTo-Json -Depth 5
           if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
           $env:LOCALAPPDATA = $oldLocal
 
@@ -125,6 +122,7 @@ jobs:
           $manifest = @"
           Runtime: Nova.Server 0.30.3 single-file self-contained
           Windows smoke test: /health HTTP 200
+          Source archive SHA256: edea311b089a0758cec81b7838c7e9a467bcbf3c7533a63777de6c2c088ae6f3
           Nova.Server.exe SHA256: $hash
           "@
           $manifest | Set-Content (Join-Path $env:RUNNER_TEMP "NOVA_RUNTIME_0303_VERIFIED.txt") -Encoding UTF8
@@ -138,5 +136,3 @@ jobs:
             ${{ runner.temp }}/NOVA_RUNTIME_0303_VERIFIED.txt
           retention-days: 1
           if-no-files-found: error
-
-# source payload: use only src.part00..09

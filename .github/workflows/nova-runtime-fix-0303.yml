@@ -1,0 +1,134 @@
+name: Nova Runtime Fix 0.30.3
+
+on:
+  push:
+    branches:
+      - nova-runtime-fix-0303
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+
+      - name: Rehydrate Nova source
+        shell: pwsh
+        run: |
+          $parts = Get-ChildItem "ci/nova-runtime-0303/src.part*" | Sort-Object Name
+          if ($parts.Count -ne 16) { throw "Expected 16 source chunks, got $($parts.Count)" }
+          $b64 = ($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
+          $bytes = [Convert]::FromBase64String($b64)
+          $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
+          if ($sha -ne "18cf834beb40525e772fb654125c19f965f92a0155074418f34e47076f0cfa13") {
+            throw "Source archive SHA256 mismatch: $sha"
+          }
+          $tar = Join-Path $env:RUNNER_TEMP "nova-src.tar.gz"
+          [IO.File]::WriteAllBytes($tar, $bytes)
+          $src = Join-Path $env:RUNNER_TEMP "nova-src"
+          New-Item -ItemType Directory -Force -Path $src | Out-Null
+          tar -xzf $tar -C $src
+          if (-not (Test-Path (Join-Path $src "src\Nova.Server\Nova.Server.csproj"))) {
+            throw "Nova.Server.csproj missing after extraction"
+          }
+          "NOVA_SRC=$src" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Publish Nova.Server single-file self-contained
+        shell: pwsh
+        run: |
+          $proj = Join-Path $env:NOVA_SRC "src\Nova.Server\Nova.Server.csproj"
+          $out = Join-Path $env:RUNNER_TEMP "nova-server-singlefile"
+          dotnet publish $proj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:PublishTrimmed=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o $out
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+          $exe = Join-Path $out "Nova.Server.exe"
+          if (-not (Test-Path $exe)) { throw "Nova.Server.exe missing" }
+          if (Test-Path (Join-Path $out "Nova.Core.dll")) { throw "Nova.Core.dll is still a loose dependency" }
+          if (Test-Path (Join-Path $out "Nova.Data.dll")) { throw "Nova.Data.dll is still a loose dependency" }
+          $items = Get-ChildItem $out -File
+          Write-Host "Published files:"
+          $items | Format-Table Name,Length
+          "NOVA_OUT=$out" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Windows startup smoke test
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:NOVA_OUT "Nova.Server.exe"
+          $stdout = Join-Path $env:RUNNER_TEMP "nova-server.stdout.log"
+          $stderr = Join-Path $env:RUNNER_TEMP "nova-server.stderr.log"
+          $oldLocal = $env:LOCALAPPDATA
+          $testLocal = Join-Path $env:RUNNER_TEMP "NovaLocalAppData"
+          New-Item -ItemType Directory -Force -Path $testLocal | Out-Null
+          $env:LOCALAPPDATA = $testLocal
+          $p = Start-Process $exe -ArgumentList @(
+            "--urls","http://127.0.0.1:5197",
+            "--Nova:Edition=Stock",
+            "--Nova:Demo=true"
+          ) -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          $ok = $false
+          for ($i = 0; $i -lt 80 -and -not $ok; $i++) {
+            Start-Sleep -Milliseconds 500
+            if ($p.HasExited) { break }
+            try {
+              $r = Invoke-WebRequest "http://127.0.0.1:5197/health" -UseBasicParsing -TimeoutSec 2
+              if ($r.StatusCode -eq 200) {
+                $ok = $true
+                Write-Host "HEALTH_OK: HTTP 200"
+              }
+            } catch {}
+          }
+          if (-not $ok) {
+            Write-Host "--- stdout ---"
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Write-Host "--- stderr ---"
+            Get-Content $stderr -ErrorAction SilentlyContinue
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+            $env:LOCALAPPDATA = $oldLocal
+            throw "Single-file Nova.Server did not become healthy on Windows"
+          }
+          try {
+            $health = Invoke-RestMethod "http://127.0.0.1:5197/health" -TimeoutSec 3
+            Write-Host "Health payload:"
+            $health | ConvertTo-Json -Depth 5
+          } catch {}
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+          $env:LOCALAPPDATA = $oldLocal
+
+      - name: Package verified runtime
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "nova-server-singlefile-0303.zip"
+          Compress-Archive -Path "$env:NOVA_OUT\*" -DestinationPath $zip -Force
+          $hash = (Get-FileHash (Join-Path $env:NOVA_OUT "Nova.Server.exe") -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "Nova.Server.exe SHA256=$hash"
+          $manifest = @"
+          Runtime: Nova.Server 0.30.3 single-file self-contained
+          Windows smoke test: /health HTTP 200
+          Nova.Server.exe SHA256: $hash
+          "@
+          $manifest | Set-Content (Join-Path $env:RUNNER_TEMP "NOVA_RUNTIME_0303_VERIFIED.txt") -Encoding UTF8
+
+      - name: Upload verified runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-server-singlefile-0303
+          path: |
+            ${{ runner.temp }}/nova-server-singlefile-0303.zip
+            ${{ runner.temp }}/NOVA_RUNTIME_0303_VERIFIED.txt
+          retention-days: 1
+          if-no-files-found: error

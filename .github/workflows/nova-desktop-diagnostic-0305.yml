@@ -1,0 +1,127 @@
+name: Nova Desktop Diagnostic 0.30.5
+on:
+  push:
+    branches:
+      - nova-desktop-diag-0305
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - name: Rehydrate verified Nova source
+        shell: pwsh
+        run: |
+          $parts = 0..5 | ForEach-Object {
+            $name = "ci/nova-runtime-0303/src.clean.part{0:D2}" -f $_
+            if (-not (Test-Path $name)) { throw "Missing source chunk: $name" }
+            Get-Item $name
+          }
+          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          $bytes = [Convert]::FromBase64String($b64)
+          $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
+          if ($sha -ne "edea311b089a0758cec81b7838c7e9a467bcbf3c7533a63777de6c2c088ae6f3") { throw "Source SHA256 mismatch: $sha" }
+          $archive = Join-Path $env:RUNNER_TEMP "nova-src.tar.xz"
+          [IO.File]::WriteAllBytes($archive, $bytes)
+          $src = Join-Path $env:RUNNER_TEMP "nova-src"
+          New-Item -ItemType Directory -Force -Path $src | Out-Null
+          tar -xf $archive -C $src
+          if ($LASTEXITCODE -ne 0) { throw "Source extraction failed" }
+          "NOVA_SRC=$src" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Patch real desktop crash diagnostics
+        shell: pwsh
+        run: |
+          $appB64 = "dXNpbmcgU3lzdGVtLklPOwp1c2luZyBTeXN0ZW0uVGV4dDsKdXNpbmcgU3lzdGVtLldpbmRvd3M7CnVzaW5nIFN5c3RlbS5XaW5kb3dzLlRocmVhZGluZzsKCm5hbWVzcGFjZSBOb3ZhLkRlc2t0b3A7CgpwdWJsaWMgcGFydGlhbCBjbGFzcyBBcHAgOiBBcHBsaWNhdGlvbgp7CiAgICBwcml2YXRlIE11dGV4PyBfaW5zdGFuY2U7CiAgICBwcml2YXRlIHN0YXRpYyBzdHJpbmc/IF9sYXN0Q3Jhc2hMb2c7CgogICAgcHJvdGVjdGVkIG92ZXJyaWRlIHZvaWQgT25TdGFydHVwKFN0YXJ0dXBFdmVudEFyZ3MgZSkKICAgIHsKICAgICAgICBiYXNlLk9uU3RhcnR1cChlKTsKICAgICAgICBfaW5zdGFuY2UgPSBuZXcgTXV0ZXgodHJ1ZSwgIkxvY2FsXFxMSy5Ob3ZhLlByZXZpZXciLCBvdXQgdmFyIGZpcnN0KTsKICAgICAgICBpZiAoIWZpcnN0KQogICAgICAgIHsKICAgICAgICAgICAgTWVzc2FnZUJveC5TaG93KCJMSyBOb3ZhIGVzdCBkw6lqw6Agb3V2ZXJ0LiIsICJMSyBOb3ZhIik7CiAgICAgICAgICAgIFNodXRkb3duKCk7CiAgICAgICAgICAgIHJldHVybjsKICAgICAgICB9CgogICAgICAgIERpc3BhdGNoZXJVbmhhbmRsZWRFeGNlcHRpb24gKz0gT25EaXNwYXRjaGVyVW5oYW5kbGVkRXhjZXB0aW9uOwogICAgICAgIEFwcERvbWFpbi5DdXJyZW50RG9tYWluLlVuaGFuZGxlZEV4Y2VwdGlvbiArPSAoXywgYSkgPT4KICAgICAgICB7CiAgICAgICAgICAgIGlmIChhLkV4Y2VwdGlvbk9iamVjdCBpcyBFeGNlcHRpb24gZXgpIFdyaXRlQ3Jhc2goIkFwcERvbWFpbi5VbmhhbmRsZWRFeGNlcHRpb24iLCBleCk7CiAgICAgICAgfTsKICAgICAgICBUYXNrU2NoZWR1bGVyLlVub2JzZXJ2ZWRUYXNrRXhjZXB0aW9uICs9IChfLCBhKSA9PgogICAgICAgIHsKICAgICAgICAgICAgV3JpdGVDcmFzaCgiVGFza1NjaGVkdWxlci5Vbm9ic2VydmVkVGFza0V4Y2VwdGlvbiIsIGEuRXhjZXB0aW9uKTsKICAgICAgICAgICAgYS5TZXRPYnNlcnZlZCgpOwogICAgICAgIH07CgogICAgICAgIHRyeQogICAgICAgIHsKICAgICAgICAgICAgdmFyIHNldHRpbmdzID0gQ2xpZW50U2V0dGluZ3MuTG9hZCgpOwogICAgICAgICAgICBMYW5nLkNvZGUgPSBzZXR0aW5ncy5MYW5ndWFnZTsKICAgICAgICAgICAgTWFpbldpbmRvdyA9IG5ldyBTaGVsbChzZXR0aW5ncyk7CiAgICAgICAgICAgIE1haW5XaW5kb3cuU2hvdygpOwogICAgICAgIH0KICAgICAgICBjYXRjaCAoRXhjZXB0aW9uIGV4KQogICAgICAgIHsKICAgICAgICAgICAgdmFyIHBhdGggPSBXcml0ZUNyYXNoKCJPblN0YXJ0dXAiLCBleCk7CiAgICAgICAgICAgIFNob3dDcmFzaChleCwgcGF0aCk7CiAgICAgICAgICAgIFNodXRkb3duKC0xKTsKICAgICAgICB9CiAgICB9CgogICAgcHJpdmF0ZSBzdGF0aWMgdm9pZCBPbkRpc3BhdGNoZXJVbmhhbmRsZWRFeGNlcHRpb24ob2JqZWN0IHNlbmRlciwgRGlzcGF0Y2hlclVuaGFuZGxlZEV4Y2VwdGlvbkV2ZW50QXJncyBhKQogICAgewogICAgICAgIHZhciBwYXRoID0gV3JpdGVDcmFzaCgiRGlzcGF0Y2hlclVuaGFuZGxlZEV4Y2VwdGlvbiIsIGEuRXhjZXB0aW9uKTsKICAgICAgICBTaG93Q3Jhc2goYS5FeGNlcHRpb24sIHBhdGgpOwogICAgICAgIGEuSGFuZGxlZCA9IHRydWU7CiAgICB9CgogICAgcHJpdmF0ZSBzdGF0aWMgc3RyaW5nIFdyaXRlQ3Jhc2goc3RyaW5nIHBoYXNlLCBFeGNlcHRpb24gZXhjZXB0aW9uKQogICAgewogICAgICAgIHRyeQogICAgICAgIHsKICAgICAgICAgICAgdmFyIHJvb3QgPSBQYXRoLkNvbWJpbmUoCiAgICAgICAgICAgICAgICBFbnZpcm9ubWVudC5HZXRGb2xkZXJQYXRoKEVudmlyb25tZW50LlNwZWNpYWxGb2xkZXIuTG9jYWxBcHBsaWNhdGlvbkRhdGEpLAogICAgICAgICAgICAgICAgIkxLIE5vdmEgUHJldmlldyIsICJsb2dzIik7CiAgICAgICAgICAgIERpcmVjdG9yeS5DcmVhdGVEaXJlY3Rvcnkocm9vdCk7CiAgICAgICAgICAgIHZhciBwYXRoID0gUGF0aC5Db21iaW5lKHJvb3QsICQiZGVza3RvcC17RGF0ZVRpbWUuTm93Onl5eXlNTWRkLUhIbW1zcy1mZmZ9LmxvZyIpOwogICAgICAgICAgICB2YXIgdGV4dCA9IG5ldyBTdHJpbmdCdWlsZGVyKCkKICAgICAgICAgICAgICAgIC5BcHBlbmRMaW5lKCJMSyBOb3ZhIERlc2t0b3AgZGlhZ25vc3RpYyAwLjMwLjUiKQogICAgICAgICAgICAgICAgLkFwcGVuZExpbmUoJCJUaW1lOiB7RGF0ZVRpbWUuTm93Ok99IikKICAgICAgICAgICAgICAgIC5BcHBlbmRMaW5lKCQiUGhhc2U6IHtwaGFzZX0iKQogICAgICAgICAgICAgICAgLkFwcGVuZExpbmUoJCJPUzoge0Vudmlyb25tZW50Lk9TVmVyc2lvbn0iKQogICAgICAgICAgICAgICAgLkFwcGVuZExpbmUoJCI2NC1iaXQgcHJvY2Vzczoge0Vudmlyb25tZW50LklzNjRCaXRQcm9jZXNzfSIpCiAgICAgICAgICAgICAgICAuQXBwZW5kTGluZSgkIkJhc2UgZGlyZWN0b3J5OiB7QXBwQ29udGV4dC5CYXNlRGlyZWN0b3J5fSIpCiAgICAgICAgICAgICAgICAuQXBwZW5kTGluZSgpCiAgICAgICAgICAgICAgICAuQXBwZW5kTGluZShleGNlcHRpb24uVG9TdHJpbmcoKSkKICAgICAgICAgICAgICAgIC5Ub1N0cmluZygpOwogICAgICAgICAgICBGaWxlLldyaXRlQWxsVGV4dChwYXRoLCB0ZXh0LCBuZXcgVVRGOEVuY29kaW5nKGZhbHNlKSk7CiAgICAgICAgICAgIF9sYXN0Q3Jhc2hMb2cgPSBwYXRoOwogICAgICAgICAgICByZXR1cm4gcGF0aDsKICAgICAgICB9CiAgICAgICAgY2F0Y2gKICAgICAgICB7CiAgICAgICAgICAgIHJldHVybiBfbGFzdENyYXNoTG9nID8/ICIoam91cm5hbCBpbmRpc3BvbmlibGUpIjsKICAgICAgICB9CiAgICB9CgogICAgcHJpdmF0ZSBzdGF0aWMgdm9pZCBTaG93Q3Jhc2goRXhjZXB0aW9uIGV4Y2VwdGlvbiwgc3RyaW5nIHBhdGgpCiAgICB7CiAgICAgICAgdmFyIHJvb3QgPSBleGNlcHRpb247CiAgICAgICAgd2hpbGUgKHJvb3QuSW5uZXJFeGNlcHRpb24gaXMgbm90IG51bGwpIHJvb3QgPSByb290LklubmVyRXhjZXB0aW9uOwogICAgICAgIHZhciBtZXNzYWdlID0KICAgICAgICAgICAgIlVuZSBlcnJldXIgZOKAmWludGVyZmFjZSBlc3Qgc3VydmVudWUuXG5cbiIgKwogICAgICAgICAgICAkIntyb290LkdldFR5cGUoKS5OYW1lfToge3Jvb3QuTWVzc2FnZX1cblxuIiArCiAgICAgICAgICAgICJKb3VybmFsIDpcbiIgKyBwYXRoOwogICAgICAgIE1lc3NhZ2VCb3guU2hvdyhtZXNzYWdlLCAiTEsgTm92YSDCtyBkaWFnbm9zdGljIiwgTWVzc2FnZUJveEJ1dHRvbi5PSywgTWVzc2FnZUJveEltYWdlLkVycm9yKTsKICAgIH0KCiAgICBwcm90ZWN0ZWQgb3ZlcnJpZGUgdm9pZCBPbkV4aXQoRXhpdEV2ZW50QXJncyBlKQogICAgewogICAgICAgIF9pbnN0YW5jZT8uRGlzcG9zZSgpOwogICAgICAgIGJhc2UuT25FeGl0KGUpOwogICAgfQp9Cg=="
+          [IO.File]::WriteAllBytes((Join-Path $env:NOVA_SRC "src\Nova.Desktop\App.xaml.cs"), [Convert]::FromBase64String($appB64))
+          $shell = Join-Path $env:NOVA_SRC "src\Nova.Desktop\Shell.cs"
+          $text = Get-Content $shell -Raw
+          $text = $text.Replace("Preview 0.30.0","Preview 0.30.5").Replace("PREVIEW · 0.30.0","PREVIEW · 0.30.5")
+          Set-Content $shell $text -Encoding utf8
+      - name: Build and publish Desktop + Launcher
+        shell: pwsh
+        run: |
+          Push-Location $env:NOVA_SRC
+          dotnet build LK-Nova.slnx -c Release
+          if ($LASTEXITCODE -ne 0) { throw "solution build failed" }
+          $win = Join-Path $env:NOVA_SRC "artifacts\windows"
+          New-Item -ItemType Directory -Force -Path (Join-Path $win "app") | Out-Null
+          dotnet publish src/Nova.Desktop -c Release -r win-x64 --self-contained true -o (Join-Path $win "app")
+          if ($LASTEXITCODE -ne 0) { throw "desktop publish failed" }
+          dotnet publish src/Nova.Launcher -c Release -r win-x64 --self-contained true -o (Join-Path $win "app")
+          if ($LASTEXITCODE -ne 0) { throw "launcher publish failed" }
+          python scripts/prepare_print_runtime.py
+          if ($LASTEXITCODE -ne 0) { throw "print runtime preparation failed" }
+          Copy-Item START_NOVA.cmd,START_NOVA_STOCK.cmd $win -Force
+          Copy-Item README_AR.md (Join-Path $win "LIRE_MOI_AR.txt") -Force
+          Copy-Item docs (Join-Path $win "docs") -Recurse -Force
+          Copy-Item design (Join-Path $win "design") -Recurse -Force
+          Pop-Location
+      - name: Publish single-file self-contained server
+        shell: pwsh
+        run: |
+          $server = Join-Path $env:NOVA_SRC "artifacts\windows\server"
+          if (Test-Path $server) { Remove-Item $server -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $server | Out-Null
+          dotnet publish (Join-Path $env:NOVA_SRC "src\Nova.Server\Nova.Server.csproj") -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false -o $server
+          if ($LASTEXITCODE -ne 0) { throw "server single-file publish failed" }
+          if (-not (Test-Path (Join-Path $server "Nova.Server.exe"))) { throw "Nova.Server.exe missing" }
+          if (Test-Path (Join-Path $server "Nova.Core.dll")) { throw "Nova.Core.dll must not be loose" }
+          if (Test-Path (Join-Path $server "Nova.Data.dll")) { throw "Nova.Data.dll must not be loose" }
+      - name: Windows server and WPF startup smoke test
+        shell: pwsh
+        run: |
+          $win = Join-Path $env:NOVA_SRC "artifacts\windows"
+          $server = Join-Path $win "server\Nova.Server.exe"
+          $desktop = Join-Path $win "app\LK Nova.exe"
+          $oldLocal = $env:LOCALAPPDATA
+          $testLocal = Join-Path $env:RUNNER_TEMP "NovaDesktopLocal"
+          if (Test-Path $testLocal) { Remove-Item $testLocal -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $testLocal | Out-Null
+          $env:LOCALAPPDATA = $testLocal
+          $serverOut = Join-Path $env:RUNNER_TEMP "server.stdout.log"
+          $serverErr = Join-Path $env:RUNNER_TEMP "server.stderr.log"
+          $sp = Start-Process $server -ArgumentList @("--urls","http://127.0.0.1:5187","--Nova:Edition=Stock","--Nova:Demo=true") -PassThru -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr
+          $healthy = $false
+          for ($i=0; $i -lt 80 -and -not $healthy; $i++) {
+            Start-Sleep -Milliseconds 500
+            if ($sp.HasExited) { break }
+            try { $req = Invoke-WebRequest "http://127.0.0.1:5187/health" -UseBasicParsing -TimeoutSec 2; if ($req.StatusCode -eq 200) { $healthy = $true } } catch {}
+          }
+          if (-not $healthy) { Get-Content $serverOut -ErrorAction SilentlyContinue; Get-Content $serverErr -ErrorAction SilentlyContinue; throw "server did not become healthy" }
+          $dp = Start-Process $desktop -PassThru
+          Start-Sleep -Seconds 8
+          $logs = @(Get-ChildItem (Join-Path $testLocal "LK Nova Preview\logs") -Filter "desktop-*.log" -ErrorAction SilentlyContinue)
+          if ($logs.Count -gt 0) {
+            $logs | ForEach-Object { Write-Host "--- $($_.FullName) ---"; Get-Content $_.FullName }
+            if (-not $dp.HasExited) { Stop-Process -Id $dp.Id -Force }
+            if (-not $sp.HasExited) { Stop-Process -Id $sp.Id -Force }
+            throw "WPF startup generated a desktop crash log"
+          }
+          if ($dp.HasExited) { if (-not $sp.HasExited) { Stop-Process -Id $sp.Id -Force }; throw "LK Nova desktop exited during startup, code $($dp.ExitCode)" }
+          Write-Host "DESKTOP_STARTUP_OK"
+          Stop-Process -Id $dp.Id -Force
+          if (-not $sp.HasExited) { Stop-Process -Id $sp.Id -Force }
+          $env:LOCALAPPDATA = $oldLocal
+      - name: Package full diagnostic Windows build
+        shell: pwsh
+        run: |
+          $win = Join-Path $env:NOVA_SRC "artifacts\windows"
+          @("LK Nova 0.30.5 diagnostic build","Server: single-file self-contained","Desktop: real exception logging enabled","Crash logs: %LOCALAPPDATA%\LK Nova Preview\logs\desktop-*.log") | Set-Content (Join-Path $win "DIAGNOSTIC_0305.txt") -Encoding utf8
+          $zip = Join-Path $env:GITHUB_WORKSPACE "Nova_0.30.5_Windows_DIAGNOSTIC_FIX.zip"
+          Compress-Archive -Path "$win\*" -DestinationPath $zip -Force
+          Write-Host "ZIP_SHA256=$((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant())"
+      - name: Upload full diagnostic package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nova_0.30.5_Windows_DIAGNOSTIC_FIX
+          path: Nova_0.30.5_Windows_DIAGNOSTIC_FIX.zip
+          retention-days: 1
+          if-no-files-found: error

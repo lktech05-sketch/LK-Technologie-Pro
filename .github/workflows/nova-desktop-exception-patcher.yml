@@ -1,0 +1,55 @@
+name: Nova Desktop Exception Patcher
+on:
+  push:
+    branches:
+      - nova-desktop-diag-0305b
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - name: Build self-contained patcher
+        shell: pwsh
+        run: |
+          dotnet publish ci/nova-desktop-patcher/NovaDiagPatcher.csproj -c Release -r win-x64 --self-contained true -o out
+          if($LASTEXITCODE -ne 0){ throw "patcher build failed" }
+          if(-not (Test-Path out/NovaDiagPatcher.exe)){ throw "NovaDiagPatcher.exe missing" }
+          Get-FileHash out/NovaDiagPatcher.exe -Algorithm SHA256
+      - name: Package
+        shell: pwsh
+        run: |
+          @'
+          @echo off
+          setlocal
+          cd /d "%~dp0"
+          if not exist "..\app\LK Nova.dll" (
+            echo LK Nova.dll introuvable dans ..\app
+            pause
+            exit /b 2
+          )
+          NovaDiagPatcher.exe "..\app\LK Nova.dll"
+          if errorlevel 1 (
+            echo Echec du patch diagnostic.
+            pause
+            exit /b 3
+          )
+          echo.
+          echo Diagnostic installe.
+          echo Relancez START_NOVA.cmd ou START_NOVA_STOCK.cmd.
+          echo Apres l'erreur, envoyez app\nova-desktop-exception.txt.
+          pause
+          '@ | Set-Content out/INSTALL_DIAGNOSTIC.cmd -Encoding ascii
+          Compress-Archive -Path out/* -DestinationPath Nova_Desktop_Exception_Patcher.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nova_Desktop_Exception_Patcher
+          path: Nova_Desktop_Exception_Patcher.zip
+          retention-days: 1
+          if-no-files-found: error

@@ -67,9 +67,14 @@ var exceptionToString = typeof(Exception).GetMethod(nameof(Exception.ToString), 
 var il = handler.Body.GetILProcessor();
 var first = handler.Body.Instructions[0];
 
+var appBaseGetter = typeof(AppContext).GetProperty(nameof(AppContext.BaseDirectory))!.GetMethod!;
+var pathCombine = typeof(Path).GetMethod(nameof(Path.Combine), new[] { typeof(string), typeof(string) })!;
+
 var injected = new[]
 {
+    Instruction.Create(OpCodes.Call, module.ImportReference(appBaseGetter)),
     Instruction.Create(OpCodes.Ldstr, "nova-desktop-exception.txt"),
+    Instruction.Create(OpCodes.Call, module.ImportReference(pathCombine)),
     Instruction.Create(OpCodes.Ldarg, eventArg),
     Instruction.Create(OpCodes.Callvirt, module.ImportReference(getException)),
     Instruction.Create(OpCodes.Callvirt, module.ImportReference(exceptionToString)),
@@ -98,6 +103,10 @@ Console.WriteLine("PATCH_OK");
 Console.WriteLine("Target: " + target);
 Console.WriteLine("Backup: " + backup);
 Console.WriteLine("Diagnostic log after repro: " + Path.Combine(directory, "nova-desktop-exception.txt"));
+File.WriteAllText(Path.Combine(directory, "DIAGNOSTIC_PATCH_INSTALLED.txt"),
+    "Nova desktop diagnostic patch installed at " + DateTime.Now.ToString("O") + Environment.NewLine +
+    "Target: " + target + Environment.NewLine +
+    "Expected log after reproduction: " + Path.Combine(directory, "nova-desktop-exception.txt"));
 return 0;
 
 static IEnumerable<TypeDefinition> Flatten(TypeDefinition root)

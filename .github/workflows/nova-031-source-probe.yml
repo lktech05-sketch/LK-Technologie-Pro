@@ -1,0 +1,94 @@
+name: Nova 0.31 Source Probe
+
+on:
+  push:
+    branches:
+      - nova-031-inventory-125029
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch archived source branch
+        shell: pwsh
+        run: |
+          git fetch origin nova-runtime-fix-0303 --depth=1
+          if ($LASTEXITCODE -ne 0) { throw "Could not fetch source branch" }
+
+      - name: Probe source payloads
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $report = [System.Collections.Generic.List[string]]::new()
+          function Rehydrate([string]$label, [string[]]$names) {
+            $report.Add("=== $label ===")
+            $b64 = ''
+            foreach ($name in $names) {
+              $text = git show "origin/nova-runtime-fix-0303:ci/nova-runtime-0303/$name"
+              if ($LASTEXITCODE -ne 0) { throw "Missing $name" }
+              $b64 += ($text -join '').Trim()
+            }
+            $bytes = [Convert]::FromBase64String($b64)
+            $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
+            $report.Add("bytes=$($bytes.Length)")
+            $report.Add("sha256=$sha")
+            $report.Add("magic=$([BitConverter]::ToString($bytes[0..([Math]::Min(15,$bytes.Length-1))]))")
+            $archive = Join-Path $env:RUNNER_TEMP "$label.bin"
+            [IO.File]::WriteAllBytes($archive,$bytes)
+            $out = Join-Path $env:RUNNER_TEMP "$label-out"
+            if(Test-Path $out){Remove-Item $out -Recurse -Force}
+            New-Item -ItemType Directory -Path $out | Out-Null
+            $listing = @()
+            try {
+              tar -tf $archive 2>&1 | Set-Content (Join-Path $out 'tar-list.txt')
+              if($LASTEXITCODE -eq 0){
+                $listing = Get-Content (Join-Path $out 'tar-list.txt')
+                tar -xf $archive -C $out
+                if($LASTEXITCODE -ne 0){ throw "extract failed" }
+                $report.Add("tar=OK entries=$($listing.Count)")
+              } else {
+                $report.Add("tar=FAIL")
+              }
+            } catch {
+              $report.Add("extract_exception=$($_.Exception.Message)")
+            }
+            foreach($p in @(
+              'LK-Nova.slnx',
+              'src/Nova.Desktop/Nova.Desktop.csproj',
+              'src/Nova.Server/Nova.Server.csproj',
+              'src/Nova.Launcher/Nova.Launcher.csproj',
+              'LK-Nova/LK-Nova.slnx',
+              'LK-Nova/src/Nova.Desktop/Nova.Desktop.csproj',
+              'LK-Nova/src/Nova.Server/Nova.Server.csproj',
+              'LK-Nova/src/Nova.Launcher/Nova.Launcher.csproj'
+            )){
+              $report.Add("$p=$([bool](Test-Path (Join-Path $out $p)))")
+            }
+            $report.Add('first_entries:')
+            $report.AddRange([string[]]($listing | Select-Object -First 40))
+            $report.Add('')
+          }
+
+          Rehydrate 'clean00-05' (0..5 | ForEach-Object { 'src.clean.part{0:D2}' -f $_ })
+          Rehydrate 'legacy00-09' (0..9 | ForEach-Object { 'src.part{0:D2}' -f $_ })
+          Rehydrate 'legacy10-15' (10..15 | ForEach-Object { 'src.part{0:D2}' -f $_ })
+          $report | Set-Content source-probe.txt -Encoding utf8
+          Get-Content source-probe.txt
+
+      - name: Upload probe report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-031-source-probe
+          path: source-probe.txt
+          retention-days: 2
+          if-no-files-found: error

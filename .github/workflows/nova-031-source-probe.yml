@@ -52,7 +52,7 @@ jobs:
             try {
               tar -tf $archive 2>&1 | Set-Content (Join-Path $out 'tar-list.txt')
               if($LASTEXITCODE -eq 0){
-                $listing = Get-Content (Join-Path $out 'tar-list.txt')
+                $listing = @(Get-Content (Join-Path $out 'tar-list.txt'))
                 tar -xf $archive -C $out
                 if($LASTEXITCODE -ne 0){ throw "extract failed" }
                 $report.Add("tar=OK entries=$($listing.Count)")
@@ -75,7 +75,7 @@ jobs:
               $report.Add("$p=$([bool](Test-Path (Join-Path $out $p)))")
             }
             $report.Add('first_entries:')
-            $report.AddRange([string[]]($listing | Select-Object -First 40))
+            foreach($entry in @($listing | Select-Object -First 40)) { $report.Add([string]$entry) }
             $report.Add('')
           }
 

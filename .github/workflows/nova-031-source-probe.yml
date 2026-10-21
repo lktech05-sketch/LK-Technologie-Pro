@@ -1,9 +1,6 @@
 name: Nova 0.31 Source Probe
 
 on:
-  push:
-    branches:
-      - nova-031-inventory-125029
   workflow_dispatch:
 
 permissions:
@@ -18,82 +15,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
       - name: Fetch archived source branch
         shell: pwsh
         run: |
           git fetch origin nova-runtime-fix-0303 --depth=1
           if ($LASTEXITCODE -ne 0) { throw "Could not fetch source branch" }
-
-      - name: Probe and recover source payloads
+      - name: Source probe is retained for manual diagnostics
         shell: pwsh
         run: |
-          $report = [System.Collections.Generic.List[string]]::new()
-          function Rehydrate([string]$label, [string[]]$names) {
-            $report.Add("=== $label ===")
-            $b64 = ''
-            foreach ($name in $names) {
-              $text = git show "origin/nova-runtime-fix-0303:ci/nova-runtime-0303/$name"
-              if ($LASTEXITCODE -ne 0) { $report.Add("missing=$name"); return }
-              $b64 += ($text -join '').Trim()
-            }
-            try { $bytes = [Convert]::FromBase64String($b64) }
-            catch { $report.Add("base64_error=$($_.Exception.Message)"); return }
-            $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
-            $report.Add("bytes=$($bytes.Length)")
-            $report.Add("sha256=$sha")
-            $report.Add("magic=$([BitConverter]::ToString($bytes[0..([Math]::Min(15,$bytes.Length-1))]))")
-            $archive = Join-Path $env:RUNNER_TEMP "$label.bin"
-            [IO.File]::WriteAllBytes($archive,$bytes)
-            $out = Join-Path $env:RUNNER_TEMP "$label-out"
-            if(Test-Path $out){Remove-Item $out -Recurse -Force}
-            New-Item -ItemType Directory -Path $out | Out-Null
-
-            $old = $ErrorActionPreference
-            $ErrorActionPreference = 'Continue'
-            & tar -tf $archive 1> (Join-Path $out 'tar-list.txt') 2> (Join-Path $out 'tar-list-error.txt')
-            $listCode = $LASTEXITCODE
-            & tar -xf $archive -C $out 1> (Join-Path $out 'tar-extract.txt') 2> (Join-Path $out 'tar-extract-error.txt')
-            $extractCode = $LASTEXITCODE
-            $ErrorActionPreference = $old
-            $global:LASTEXITCODE = 0
-
-            $listing = @()
-            if(Test-Path (Join-Path $out 'tar-list.txt')) { $listing = @(Get-Content (Join-Path $out 'tar-list.txt')) }
-            $files = @(Get-ChildItem $out -Recurse -File | Where-Object { $_.Name -notlike 'tar-*' })
-            $report.Add("tar_list_exit=$listCode listed=$($listing.Count)")
-            $report.Add("tar_extract_exit=$extractCode recovered_files=$($files.Count)")
-            foreach($p in @(
-              'LK-Nova.slnx',
-              'src/Nova.Desktop/Nova.Desktop.csproj',
-              'src/Nova.Server/Nova.Server.csproj',
-              'src/Nova.Launcher/Nova.Launcher.csproj',
-              'LK-Nova/LK-Nova.slnx',
-              'LK-Nova/src/Nova.Desktop/Nova.Desktop.csproj',
-              'LK-Nova/src/Nova.Server/Nova.Server.csproj',
-              'LK-Nova/src/Nova.Launcher/Nova.Launcher.csproj'
-            )) { $report.Add("$p=$([bool](Test-Path (Join-Path $out $p)))") }
-            $report.Add('recovered_paths:')
-            foreach($file in @($files | Select-Object -First 100)) { $report.Add($file.FullName.Substring($out.Length + 1)) }
-            if(Test-Path (Join-Path $out 'tar-extract-error.txt')) {
-              $report.Add('extract_errors:')
-              foreach($line in @(Get-Content (Join-Path $out 'tar-extract-error.txt') | Select-Object -First 20)) { $report.Add([string]$line) }
-            }
-            $report.Add('')
-          }
-
-          Rehydrate 'clean00-05' (0..5 | ForEach-Object { 'src.clean.part{0:D2}' -f $_ })
-          Rehydrate 'legacy00-09' (0..9 | ForEach-Object { 'src.part{0:D2}' -f $_ })
-          Rehydrate 'legacy00-15' (0..15 | ForEach-Object { 'src.part{0:D2}' -f $_ })
-          Rehydrate 'legacy10-15' (10..15 | ForEach-Object { 'src.part{0:D2}' -f $_ })
-          $report | Set-Content source-probe.txt -Encoding utf8
-          Get-Content source-probe.txt
-          exit 0
-
-      - name: Upload probe report
-        uses: actions/upload-artifact@v4
-        with:
-          name: nova-031-source-probe
-          path: source-probe.txt
-          retention-days: 2
-          if-no-files-found: error
+          Write-Host "Use the completed probe artifact from run 39676958307."

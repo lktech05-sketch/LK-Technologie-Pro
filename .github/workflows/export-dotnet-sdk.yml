@@ -1,0 +1,27 @@
+name: Export .NET 10 Linux SDK
+on:
+  push:
+    branches: [nova-031-inventory-ci]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - name: Package SDK
+        shell: bash
+        run: |
+          dotnet --info
+          tar -C "$DOTNET_ROOT" -czf dotnet-sdk-10.0.401-linux-x64.tar.gz .
+          sha256sum dotnet-sdk-10.0.401-linux-x64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-sdk-10.0.401-linux-x64
+          path: dotnet-sdk-10.0.401-linux-x64.tar.gz
+          retention-days: 1

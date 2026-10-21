@@ -1,4 +1,4 @@
-name: Export Nova Windows Build Packs
+name: Export Nova Windows 10.0.12 Packs
 on:
   push:
     branches: [nova-031-inventory-ci]
@@ -7,13 +7,13 @@ permissions:
 jobs:
   export:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.401'
-      - name: Warm Windows desktop and runtime packs
+      - name: Restore exact 10.0.12 Windows packs
         shell: bash
         run: |
           mkdir -p /tmp/wpf
@@ -24,6 +24,8 @@ jobs:
               <UseWPF>true</UseWPF>
               <EnableWindowsTargeting>true</EnableWindowsTargeting>
               <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+              <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
+              <TargetLatestRuntimePatch>false</TargetLatestRuntimePatch>
             </PropertyGroup>
             <ItemGroup><PackageReference Include="System.IO.Ports" Version="10.0.12" /></ItemGroup>
           </Project>
@@ -33,7 +35,12 @@ jobs:
           mkdir -p /tmp/web
           cat > /tmp/web/web.csproj <<'EOF'
           <Project Sdk="Microsoft.NET.Sdk.Web">
-            <PropertyGroup><TargetFramework>net10.0</TargetFramework><RuntimeIdentifier>win-x64</RuntimeIdentifier></PropertyGroup>
+            <PropertyGroup>
+              <TargetFramework>net10.0</TargetFramework>
+              <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+              <RuntimeFrameworkVersion>10.0.12</RuntimeFrameworkVersion>
+              <TargetLatestRuntimePatch>false</TargetLatestRuntimePatch>
+            </PropertyGroup>
             <ItemGroup>
               <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
               <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
@@ -42,24 +49,24 @@ jobs:
           EOF
           echo 'var b=WebApplication.CreateBuilder(args);var a=b.Build();a.Run();' > /tmp/web/Program.cs
           dotnet restore /tmp/web/web.csproj -r win-x64
-      - name: Package Windows build cache
+      - name: Package exact cache
         shell: bash
         run: |
           mkdir -p cache
           for d in "$HOME/.nuget/packages/"*; do
             n="$(basename "$d")"
             case "$n" in
-              *sqlite*|system.io.ports|microsoft.windowsdesktop.app.ref|microsoft.windowsdesktop.app.runtime.win-x64|microsoft.netcore.app.runtime.win-x64|microsoft.netcore.app.host.win-x64|microsoft.aspnetcore.app.runtime.win-x64|microsoft.aspnetcore.app.ref)
+              *sqlite*|system.io.ports*|runtime.native.system.io.ports|microsoft.windowsdesktop.app.ref|microsoft.windowsdesktop.app.runtime.win-x64|microsoft.netcore.app.runtime.win-x64|microsoft.netcore.app.host.win-x64|microsoft.aspnetcore.app.runtime.win-x64|microsoft.aspnetcore.app.ref)
                 cp -a "$d" cache/
                 ;;
             esac
           done
-          tar -czf nova-windows-packs.tar.gz cache
-          du -h nova-windows-packs.tar.gz
-          sha256sum nova-windows-packs.tar.gz
+          tar -czf nova-win1012-cache.tar.gz cache
+          du -h nova-win1012-cache.tar.gz
+          sha256sum nova-win1012-cache.tar.gz
       - uses: actions/upload-artifact@v4
         with:
-          name: nova-windows-packs
-          path: nova-windows-packs.tar.gz
+          name: nova-win1012-cache
+          path: nova-win1012-cache.tar.gz
           compression-level: 0
           retention-days: 1

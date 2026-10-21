@@ -1,4 +1,4 @@
-name: Export .NET 10 Linux SDK
+name: Export Nova Windows Build Packs
 on:
   push:
     branches: [nova-031-inventory-ci]
@@ -7,41 +7,59 @@ permissions:
 jobs:
   export:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.401'
-      - name: Warm Nova NuGet dependencies
+      - name: Warm Windows desktop and runtime packs
         shell: bash
         run: |
-          mkdir -p /tmp/nova-deps
-          cat > /tmp/nova-deps/deps.csproj <<'EOF'
+          mkdir -p /tmp/wpf
+          cat > /tmp/wpf/wpf.csproj <<'EOF'
           <Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+            <PropertyGroup>
+              <TargetFramework>net10.0-windows</TargetFramework>
+              <UseWPF>true</UseWPF>
+              <EnableWindowsTargeting>true</EnableWindowsTargeting>
+              <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+            </PropertyGroup>
+            <ItemGroup><PackageReference Include="System.IO.Ports" Version="10.0.12" /></ItemGroup>
+          </Project>
+          EOF
+          echo 'public class Dummy {}' > /tmp/wpf/Class1.cs
+          dotnet restore /tmp/wpf/wpf.csproj -r win-x64
+          mkdir -p /tmp/web
+          cat > /tmp/web/web.csproj <<'EOF'
+          <Project Sdk="Microsoft.NET.Sdk.Web">
+            <PropertyGroup><TargetFramework>net10.0</TargetFramework><RuntimeIdentifier>win-x64</RuntimeIdentifier></PropertyGroup>
             <ItemGroup>
               <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
               <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
             </ItemGroup>
           </Project>
           EOF
-          dotnet restore /tmp/nova-deps/deps.csproj
-          mkdir -p nuget
-          for d in "$HOME/.nuget/packages/"*sqlite*; do
-            [ -d "$d" ] && cp -a "$d" nuget/
-          done
-          tar -czf nova-nuget-cache.tar.gz nuget
-      - name: Download official SDK archive
+          echo 'var b=WebApplication.CreateBuilder(args);var a=b.Build();a.Run();' > /tmp/web/Program.cs
+          dotnet restore /tmp/web/web.csproj -r win-x64
+      - name: Package Windows build cache
         shell: bash
         run: |
-          curl -fL --retry 3 -o dotnet-sdk-10.0.401-linux-x64.tar.gz https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-linux-x64.tar.gz
-          sha256sum dotnet-sdk-10.0.401-linux-x64.tar.gz nova-nuget-cache.tar.gz
+          mkdir -p cache
+          for d in "$HOME/.nuget/packages/"*; do
+            n="$(basename "$d")"
+            case "$n" in
+              *sqlite*|system.io.ports|microsoft.windowsdesktop.app.ref|microsoft.windowsdesktop.app.runtime.win-x64|microsoft.netcore.app.runtime.win-x64|microsoft.netcore.app.host.win-x64|microsoft.aspnetcore.app.runtime.win-x64|microsoft.aspnetcore.app.ref)
+                cp -a "$d" cache/
+                ;;
+            esac
+          done
+          tar -czf nova-windows-packs.tar.gz cache
+          du -h nova-windows-packs.tar.gz
+          sha256sum nova-windows-packs.tar.gz
       - uses: actions/upload-artifact@v4
         with:
-          name: dotnet-nova-ci
-          path: |
-            dotnet-sdk-10.0.401-linux-x64.tar.gz
-            nova-nuget-cache.tar.gz
+          name: nova-windows-packs
+          path: nova-windows-packs.tar.gz
           compression-level: 0
           retention-days: 1

@@ -28,8 +28,8 @@ jobs:
           EOF
           dotnet restore /tmp/nova-deps/deps.csproj
           mkdir -p nuget
-          for p in microsoft.data.sqlite microsoft.data.sqlite.core sqlitepclraw.bundle_e_sqlite3 sqlitepclraw.core sqlitepclraw.provider.e_sqlite3 sqlitepclraw.lib.e_sqlite3; do
-            if [ -d "$HOME/.nuget/packages/$p" ]; then cp -a "$HOME/.nuget/packages/$p" nuget/; fi
+          for d in "$HOME/.nuget/packages/"*sqlite*; do
+            [ -d "$d" ] && cp -a "$d" nuget/
           done
           tar -czf nova-nuget-cache.tar.gz nuget
       - name: Download official SDK archive

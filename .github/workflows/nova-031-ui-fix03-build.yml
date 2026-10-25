@@ -65,7 +65,12 @@ jobs:
           $old='Table.LoadingRow+=(_,e)=>{if(e.Row.Item is CountRow row)e.Row.Background=row.Tag switch{"same"=>Ui.Brush("#E7F6EF"),"minus"=>Ui.Brush("#FFF0EF"),"plus"=>Ui.Brush("#EAF2FF"),_=>Brushes.Transparent;};'
           $new='Table.LoadingRow+=(_,e)=>{if(e.Row.Item is CountRow row)e.Row.Background=row.Tag switch{"same"=>Ui.Brush("#E7F6EF"),"minus"=>Ui.Brush("#FFF0EF"),"plus"=>Ui.Brush("#EAF2FF"),_=>Brushes.Transparent};};'
           if(-not $text.Contains($old)){throw 'PhysicalInventoryWindow compile-fix pattern missing'}
-          Set-Content $window ($text.Replace($old,$new)) -Encoding utf8
+          $text=$text.Replace($old,$new)
+          if(-not $text.Contains('using System.Windows.Controls.Primitives;')){
+            $text=$text.Replace('using System.Windows.Controls;', "using System.Windows.Controls;`r`nusing System.Windows.Controls.Primitives;")
+          }
+          $text=$text.Replace('await Run(Scan,false);','await Run(()=>Scan(),false);')
+          Set-Content $window $text -Encoding utf8
 
           $store=Join-Path $env:NOVA_ROOT 'src/Nova.Data/PhysicalInventoryStore.cs'
           $text=Get-Content $store -Raw

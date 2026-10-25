@@ -1,0 +1,212 @@
+name: Nova 0.31 UI_FIX03 Windows Build
+
+on:
+  push:
+    branches:
+      - nova-031-build-ui-fix03
+    paths:
+      - '.github/workflows/nova-031-ui-fix03-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-package:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source payload branch
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10.0.401
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+
+      - name: Rehydrate exact Nova 0.31 source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts = Get-ChildItem ci/nova031-source/part*.txt | Sort-Object Name
+          if($parts.Count -ne 43){ throw "Expected 43 source chunks, got $($parts.Count)" }
+          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          $bytes = [Convert]::FromBase64String($b64)
+          $sha = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData($bytes)).Replace('-','').ToLowerInvariant()
+          Write-Host "SOURCE_SHA256=$sha"
+          if($sha -ne 'fbcbf6c6c9b91a13ba74ea0b0d6dbefb57177b1d1413fe4d954189d68462b61d'){
+            throw "Source SHA256 mismatch"
+          }
+          $archive = Join-Path $env:RUNNER_TEMP 'nova031.tar.gz'
+          [IO.File]::WriteAllBytes($archive,$bytes)
+          $extract = Join-Path $env:RUNNER_TEMP 'nova031-src'
+          if(Test-Path $extract){Remove-Item $extract -Recurse -Force}
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          tar -xzf $archive -C $extract
+          if($LASTEXITCODE -ne 0){throw 'Source extraction failed'}
+          $root = Join-Path $extract 'LK-Nova'
+          foreach($p in @(
+            'LK-Nova.slnx',
+            'src/Nova.Desktop/Nova.Desktop.csproj',
+            'src/Nova.Launcher/Nova.Launcher.csproj',
+            'src/Nova.Server/Nova.Server.csproj',
+            'tests/Nova.Tests/Nova.Tests.csproj'
+          )){
+            if(-not (Test-Path (Join-Path $root $p))){throw "Missing source path: $p"}
+          }
+          "NOVA_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build, tests and Windows publish
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'nova031-build.log'
+          Start-Transcript -Path $log -Force
+          Push-Location $env:NOVA_ROOT
+          try {
+            & pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/Build-Windows.ps1
+            $code=$LASTEXITCODE
+          } finally {
+            Pop-Location
+            Stop-Transcript
+          }
+          if($code -ne 0){throw "Build-Windows.ps1 failed with exit code $code"}
+
+      - name: Re-publish Nova.Server single-file
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location $env:NOVA_ROOT
+          try {
+            $server='artifacts/windows/server'
+            if(Test-Path $server){Remove-Item $server -Recurse -Force}
+            New-Item -ItemType Directory -Force -Path $server | Out-Null
+            dotnet publish src/Nova.Server -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=false -p:DebugType=None -p:DebugSymbols=false -o $server
+            if($LASTEXITCODE -ne 0){throw 'Single-file server publish failed'}
+            if(-not (Test-Path "$server/Nova.Server.exe")){throw 'Nova.Server.exe missing'}
+            if(Test-Path "$server/Nova.Core.dll"){throw 'Nova.Core.dll must not remain loose'}
+            if(Test-Path "$server/Nova.Data.dll"){throw 'Nova.Data.dll must not remain loose'}
+          } finally { Pop-Location }
+
+      - name: Verify required Windows executables
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:NOVA_ROOT 'artifacts/windows'
+          $required=@(
+            'app/Nova.Launcher.exe',
+            'app/LK Nova.exe',
+            'server/Nova.Server.exe',
+            'START_NOVA.cmd',
+            'START_NOVA_STOCK.cmd'
+          )
+          foreach($p in $required){
+            $full=Join-Path $root $p
+            if(-not (Test-Path $full)){throw "Required Windows file missing: $p"}
+            Write-Host "OK $p $((Get-Item $full).Length)"
+          }
+
+      - name: Server health smoke test
+        shell: pwsh
+        run: |
+          $server=Join-Path $env:NOVA_ROOT 'artifacts/windows/server/Nova.Server.exe'
+          $testLocal=Join-Path $env:RUNNER_TEMP 'Nova031Local'
+          New-Item -ItemType Directory -Force -Path $testLocal | Out-Null
+          $old=$env:LOCALAPPDATA
+          $env:LOCALAPPDATA=$testLocal
+          $stdout=Join-Path $env:RUNNER_TEMP 'server.stdout.log'
+          $stderr=Join-Path $env:RUNNER_TEMP 'server.stderr.log'
+          $p=Start-Process $server -ArgumentList @('--urls','http://127.0.0.1:5197','--Nova:Edition=Stock','--Nova:Demo=true') -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          $ok=$false
+          for($i=0;$i -lt 80 -and -not $ok;$i++){
+            Start-Sleep -Milliseconds 500
+            if($p.HasExited){break}
+            try{
+              $r=Invoke-WebRequest 'http://127.0.0.1:5197/health' -UseBasicParsing -TimeoutSec 2
+              if($r.StatusCode -eq 200){$ok=$true}
+            }catch{}
+          }
+          if(-not $ok){
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Get-Content $stderr -ErrorAction SilentlyContinue
+            if(-not $p.HasExited){Stop-Process -Id $p.Id -Force}
+            $env:LOCALAPPDATA=$old
+            throw 'Nova.Server health check failed'
+          }
+          Write-Host 'SERVER_HEALTH_OK'
+          if(-not $p.HasExited){Stop-Process -Id $p.Id -Force}
+          $env:LOCALAPPDATA=$old
+
+      - name: Desktop startup smoke test
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:NOVA_ROOT 'artifacts/windows'
+          $server=Join-Path $root 'server/Nova.Server.exe'
+          $desktop=Join-Path $root 'app/LK Nova.exe'
+          $testLocal=Join-Path $env:RUNNER_TEMP 'Nova031DesktopLocal'
+          if(Test-Path $testLocal){Remove-Item $testLocal -Recurse -Force}
+          New-Item -ItemType Directory -Force -Path $testLocal | Out-Null
+          $old=$env:LOCALAPPDATA
+          $env:LOCALAPPDATA=$testLocal
+          $sp=Start-Process $server -ArgumentList @('--urls','http://127.0.0.1:5187','--Nova:Edition=Stock','--Nova:Demo=true') -PassThru
+          $healthy=$false
+          for($i=0;$i -lt 80 -and -not $healthy;$i++){
+            Start-Sleep -Milliseconds 500
+            if($sp.HasExited){break}
+            try{
+              $r=Invoke-WebRequest 'http://127.0.0.1:5187/health' -UseBasicParsing -TimeoutSec 2
+              if($r.StatusCode -eq 200){$healthy=$true}
+            }catch{}
+          }
+          if(-not $healthy){if(-not $sp.HasExited){Stop-Process -Id $sp.Id -Force};throw 'Server not healthy for desktop smoke'}
+          $dp=Start-Process $desktop -PassThru
+          Start-Sleep -Seconds 8
+          if($dp.HasExited){
+            if(-not $sp.HasExited){Stop-Process -Id $sp.Id -Force}
+            $env:LOCALAPPDATA=$old
+            throw "LK Nova desktop exited during startup, code $($dp.ExitCode)"
+          }
+          Write-Host 'DESKTOP_STARTUP_OK'
+          Stop-Process -Id $dp.Id -Force
+          if(-not $sp.HasExited){Stop-Process -Id $sp.Id -Force}
+          $env:LOCALAPPDATA=$old
+
+      - name: Package verified Windows build and source
+        shell: pwsh
+        run: |
+          $windows=Join-Path $env:NOVA_ROOT 'artifacts/windows'
+          $note=@"
+          LK Nova 0.31 - UI_FIX03_CLIENT_SAVE baseline
+          Source SHA256: fbcbf6c6c9b91a13ba74ea0b0d6dbefb57177b1d1413fe4d954189d68462b61d
+          Build: GitHub Actions windows-latest / .NET SDK 10.0.401
+          Tests: scripts/Build-Windows.ps1 + Nova.Tests
+          Server: self-contained single-file
+          Required executables verified: Nova.Launcher.exe, LK Nova.exe, Nova.Server.exe
+          Server health smoke: OK
+          Desktop startup smoke: OK
+          "@
+          $note | Set-Content (Join-Path $windows 'VERIFIED_BUILD_031.txt') -Encoding UTF8
+          $wzip=Join-Path $env:GITHUB_WORKSPACE 'NOVA_0.31_UI_FIX03_CLIENT_SAVE_WINDOWS_VERIFIED.zip'
+          Compress-Archive -Path "$windows/*" -DestinationPath $wzip -Force
+          $szip=Join-Path $env:GITHUB_WORKSPACE 'NOVA_0.31_UI_FIX03_CLIENT_SAVE_SOURCE_VERIFIED.zip'
+          Compress-Archive -Path "$env:NOVA_ROOT/*" -DestinationPath $szip -Force
+          Write-Host "WINDOWS_SHA256=$((Get-FileHash $wzip -Algorithm SHA256).Hash.ToLowerInvariant())"
+          Write-Host "SOURCE_ZIP_SHA256=$((Get-FileHash $szip -Algorithm SHA256).Hash.ToLowerInvariant())"
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova031-build-logs
+          path: nova031-build.log
+          if-no-files-found: ignore
+          retention-days: 2
+
+      - name: Upload verified packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nova_0.31_UI_FIX03_CLIENT_SAVE_VERIFIED
+          path: |
+            NOVA_0.31_UI_FIX03_CLIENT_SAVE_WINDOWS_VERIFIED.zip
+            NOVA_0.31_UI_FIX03_CLIENT_SAVE_SOURCE_VERIFIED.zip
+          if-no-files-found: error
+          retention-days: 2

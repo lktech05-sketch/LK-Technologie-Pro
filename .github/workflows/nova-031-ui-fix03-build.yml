@@ -56,6 +56,25 @@ jobs:
           }
           "NOVA_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Apply compile fixes discovered by verified CI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $window=Join-Path $env:NOVA_ROOT 'src/Nova.Desktop/Views/PhysicalInventoryWindow.cs'
+          $text=Get-Content $window -Raw
+          $old='Table.LoadingRow+=(_,e)=>{if(e.Row.Item is CountRow row)e.Row.Background=row.Tag switch{"same"=>Ui.Brush("#E7F6EF"),"minus"=>Ui.Brush("#FFF0EF"),"plus"=>Ui.Brush("#EAF2FF"),_=>Brushes.Transparent;};'
+          $new='Table.LoadingRow+=(_,e)=>{if(e.Row.Item is CountRow row)e.Row.Background=row.Tag switch{"same"=>Ui.Brush("#E7F6EF"),"minus"=>Ui.Brush("#FFF0EF"),"plus"=>Ui.Brush("#EAF2FF"),_=>Brushes.Transparent};'
+          if(-not $text.Contains($old)){throw 'PhysicalInventoryWindow compile-fix pattern missing'}
+          Set-Content $window ($text.Replace($old,$new)) -Encoding utf8
+
+          $store=Join-Path $env:NOVA_ROOT 'src/Nova.Data/PhysicalInventoryStore.cs'
+          $text=Get-Content $store -Raw
+          $old='var state=actual is null?"UNCOUNTED":diff==0?"SAME":diff<0?"MISSING":"SURPLUS";var value=actual is null||!showCost?(long?)null:Measures.Line(diff,r.GetInt64(9));'
+          $new='var state=actual is null?"UNCOUNTED":diff==0?"SAME":diff<0?"MISSING":"SURPLUS";var lineValue=actual is null||!showCost?(long?)null:Measures.Line(diff,r.GetInt64(9));'
+          if(-not $text.Contains($old)){throw 'PhysicalInventoryStore variable-fix pattern missing'}
+          $text=$text.Replace($old,$new).Replace(',value,state,',',lineValue,state,')
+          Set-Content $store $text -Encoding utf8
+
       - name: Build, tests and Windows publish
         shell: pwsh
         run: |

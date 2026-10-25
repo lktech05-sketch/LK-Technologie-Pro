@@ -7,10 +7,10 @@ layout: null
 {%- assign lk_after_news = lk_source | split: '<section id="video">' | last -%}
 {%- capture lk_home -%}
 {{- lk_before_news -}}
-{%- include windows-v12-5-features.html -%}
+{%- include windows-v12-6-features.html -%}
 <section id="video">
 {{- lk_after_news -}}
 {%- endcapture -%}
 {%- assign lk_home = lk_home | replace: 'Découvrez LK.Technologie Pro V12.3', 'Découvrez LK.Technologie Pro' | replace: 'اكتشف LK.Technologie Pro V12.3', 'اكتشف LK.Technologie Pro' | replace: 'Présentation de LK.Technologie Pro V12.3', 'Présentation de LK.Technologie Pro' | replace: 'Dashboard réel de LK.Technologie Pro V12.3', 'Tableau de bord de LK.Technologie Pro' -%}
-{%- assign lk_home = lk_home | replace: 'Nouvelle interface · V12.3', 'V12.5 disponible' | replace: 'الواجهة الجديدة · V12.3', 'V12.5 متاحة الآن' | replace: 'V12.3', 'V12.5' | replace: '#whats-new-v123', '#whats-new-v125' | replace: 'download-v12-3.html', 'download-v12-5.html?start=1' -%}
-{{- lk_home | replace: '</head>', '<meta name="lk-windows-release" content="12.5"><meta name="lk-windows-build" content="FINAL"></head>' -}}
+{%- assign lk_home = lk_home | replace: 'Nouvelle interface · V12.3', 'V12.6 disponible' | replace: 'الواجهة الجديدة · V12.3', 'V12.6 متاحة الآن' | replace: 'V12.3', 'V12.6' | replace: '#whats-new-v123', '#whats-new-v126' | replace: 'download-v12-3.html', 'download-v12-6.html' -%}
+{{- lk_home | replace: '</head>', '<meta name="lk-windows-release" content="12.6"></head>' -}}

@@ -83,18 +83,8 @@ jobs:
           # A rejected non-Nova database must release its pooled handle on Windows.
           $novaStore=Join-Path $env:NOVA_ROOT 'src/Nova.Data/NovaStore.cs'
           $text=Get-Content $novaStore -Raw
-          $old=@'
-        if ((tables > 0 || version > 0) && application != 1279999574)
-            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");
-'@
-          $new=@'
-        if ((tables > 0 || version > 0) && application != 1279999574)
-        {
-            SqliteConnection.ClearPool(c);
-            c.Close();
-            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");
-        }
-'@
+          $old='        if ((tables > 0 || version > 0) && application != 1279999574)' + "`r`n" + '            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");'
+          $new='        if ((tables > 0 || version > 0) && application != 1279999574)' + "`r`n" + '        {' + "`r`n" + '            SqliteConnection.ClearPool(c);' + "`r`n" + '            c.Close();' + "`r`n" + '            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");' + "`r`n" + '        }'
           if(-not $text.Contains($old)){throw 'Legacy rejection pattern missing'}
           Set-Content $novaStore ($text.Replace($old,$new)) -Encoding utf8
 

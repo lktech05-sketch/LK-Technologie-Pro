@@ -87,9 +87,22 @@ jobs:
           $throwLine='            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");'
           if(-not $text.Contains($ifLine) -or -not $text.Contains($throwLine)){throw 'Legacy rejection pattern missing'}
           $text=$text.Replace($ifLine,$ifLine + "`n" + '        {')
-          $replacement='            SqliteConnection.ClearPool(c);' + "`n" + '            c.Close();' + "`n" + $throwLine + "`n" + '        }'
+          $replacement='            c.Close();' + "`n" + '            SqliteConnection.ClearPool(c);' + "`n" + $throwLine + "`n" + '        }'
           $text=$text.Replace($throwLine,$replacement)
           Set-Content $novaStore $text -Encoding utf8
+
+          # Schema 21 is now the current version; older migration tests must expect the full upgrade.
+          $cards=Join-Path $env:NOVA_ROOT 'tests/Nova.Tests/CustomerCardCases.cs'
+          $text=Get-Content $cards -Raw
+          $needle='Eq(receipt,JsonSerializer.Serialize(upgraded.ReceiptView(saleId).Original));Eq(20L,Sql(name,"PRAGMA user_version"));'
+          if(-not $text.Contains($needle)){throw 'Customer-card schema expectation pattern missing'}
+          Set-Content $cards ($text.Replace($needle,'Eq(receipt,JsonSerializer.Serialize(upgraded.ReceiptView(saleId).Original));Eq(21L,Sql(name,"PRAGMA user_version"));')) -Encoding utf8
+
+          $categories=Join-Path $env:NOVA_ROOT 'tests/Nova.Tests/ProductCategoryCases.cs'
+          $text=Get-Content $categories -Raw
+          $needle='Eq(20L,(long)Sql(name,"PRAGMA user_version")!);Eq("Écrans|قطع الغيار",string.Join(''|'',upgraded.ProductCategories()));'
+          if(-not $text.Contains($needle)){throw 'Product-category schema expectation pattern missing'}
+          Set-Content $categories ($text.Replace($needle,'Eq(21L,(long)Sql(name,"PRAGMA user_version")!);Eq("Écrans|قطع الغيار",string.Join(''|'',upgraded.ProductCategories()));')) -Encoding utf8
 
           $store=Join-Path $env:NOVA_ROOT 'src/Nova.Data/PhysicalInventoryStore.cs'
           $text=Get-Content $store -Raw

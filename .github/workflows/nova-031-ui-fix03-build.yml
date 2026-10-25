@@ -72,6 +72,32 @@ jobs:
           $text=$text.Replace('await Run(Scan,false);','await Run(()=>Scan(),false);')
           Set-Content $window $text -Encoding utf8
 
+          # Migration test fixtures created before schema 21 must not retain schema-21 inventory tables.
+          $tests=Join-Path $env:NOVA_ROOT 'tests/Nova.Tests/Program.cs'
+          $text=Get-Content $tests -Raw
+          $old='const string DowngradeProductCategories="DROP TABLE product_categories; ";'
+          $new='const string DowngradePhysicalInventory="DROP TABLE physical_inventory_lines; DROP TABLE physical_inventory_sessions; ";' + "`r`n" + 'const string DowngradeProductCategories=DowngradePhysicalInventory+"DROP TABLE product_categories; ";'
+          if(-not $text.Contains($old)){throw 'Migration downgrade fixture pattern missing'}
+          Set-Content $tests ($text.Replace($old,$new)) -Encoding utf8
+
+          # A rejected non-Nova database must release its pooled handle on Windows.
+          $novaStore=Join-Path $env:NOVA_ROOT 'src/Nova.Data/NovaStore.cs'
+          $text=Get-Content $novaStore -Raw
+          $old=@'
+        if ((tables > 0 || version > 0) && application != 1279999574)
+            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");
+'@
+          $new=@'
+        if ((tables > 0 || version > 0) && application != 1279999574)
+        {
+            SqliteConnection.ClearPool(c);
+            c.Close();
+            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");
+        }
+'@
+          if(-not $text.Contains($old)){throw 'Legacy rejection pattern missing'}
+          Set-Content $novaStore ($text.Replace($old,$new)) -Encoding utf8
+
           $store=Join-Path $env:NOVA_ROOT 'src/Nova.Data/PhysicalInventoryStore.cs'
           $text=Get-Content $store -Raw
           $old='var state=actual is null?"UNCOUNTED":diff==0?"SAME":diff<0?"MISSING":"SURPLUS";var value=actual is null||!showCost?(long?)null:Measures.Line(diff,r.GetInt64(9));'

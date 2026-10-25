@@ -247,11 +247,11 @@
           <span data-fr="Activation requise" data-ar="يتطلب التفعيل">Activation requise</span>
         </div>
         <div class="mobile-actions">
-          <a class="btn btn-android apk-link" data-apk-link aria-disabled="true"
+          <a class="btn btn-android apk-link" data-apk-link href="https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/MOBILE-1.0.33/LK_Technologie_Pro_Mobile_1_0_33.apk" download="LK_Technologie_Pro_Mobile_1_0_33.apk" aria-disabled="false"
              data-fr="⬇ Télécharger pour Android" data-ar="⬇ تحميل تطبيق Android">⬇ Télécharger pour Android</a>
           <span class="apk-status" data-apk-status
-                data-fr="APK Android v1.0.33 — en attente de publication."
-                data-ar="APK Android الإصدار 1.0.33 — في انتظار الرفع.">APK Android v1.0.33 — en attente de publication.</span>
+                data-fr="APK Android v1.0.33 disponible en téléchargement direct."
+                data-ar="ملف APK Android الإصدار 1.0.33 متاح الآن للتحميل المباشر.">APK Android v1.0.33 disponible en téléchargement direct.</span>
         </div>
       </div>
       <div class="mobile-visual-wrap" id="mobileVisualWrap">
@@ -478,10 +478,10 @@
           <span class="pill" data-fr="Activation requise" data-ar="يتطلب التفعيل">Activation requise</span>
         </div>
         <div style="margin-top:12px"><span class="apk-status" data-apk-status
-          data-fr="APK Android v1.0.33 — en attente de publication."
-          data-ar="APK Android الإصدار 1.0.33 — في انتظار الرفع.">APK Android v1.0.33 — en attente de publication.</span></div>
+          data-fr="APK Android v1.0.33 disponible en téléchargement direct."
+          data-ar="ملف APK Android الإصدار 1.0.33 متاح الآن للتحميل المباشر.">APK Android v1.0.33 disponible en téléchargement direct.</span></div>
       </div>
-      <a class="btn btn-android apk-link" data-apk-link aria-disabled="true"
+      <a class="btn btn-android apk-link" data-apk-link href="https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/MOBILE-1.0.33/LK_Technologie_Pro_Mobile_1_0_33.apk" download="LK_Technologie_Pro_Mobile_1_0_33.apk" aria-disabled="false"
          data-fr="⬇ Télécharger pour Android" data-ar="⬇ تحميل تطبيق Android">⬇ Télécharger pour Android</a>
     </div>
   </div>
@@ -600,10 +600,11 @@
       if(!asset)throw new Error('asset-not-ready');
       setApkState(true,asset);
     }catch(e){
-      setApkState(false,null);
+      setApkState(true,apkPublishedAsset);
     }
   }
-  setApkState(false,null);
+  const apkPublishedAsset={browser_download_url:'https://github.com/lktech05-sketch/LK-Technologie-Pro/releases/download/MOBILE-1.0.33/LK_Technologie_Pro_Mobile_1_0_33.apk',size:2912434};
+  setApkState(true,apkPublishedAsset);
   detectApkRelease();
 
   document.querySelectorAll('.zoom-shot').forEach(link=>link.addEventListener('click',event=>{

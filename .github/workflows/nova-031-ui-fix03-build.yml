@@ -83,10 +83,13 @@ jobs:
           # A rejected non-Nova database must release its pooled handle on Windows.
           $novaStore=Join-Path $env:NOVA_ROOT 'src/Nova.Data/NovaStore.cs'
           $text=Get-Content $novaStore -Raw
-          $old='        if ((tables > 0 || version > 0) && application != 1279999574)' + "`r`n" + '            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");'
-          $new='        if ((tables > 0 || version > 0) && application != 1279999574)' + "`r`n" + '        {' + "`r`n" + '            SqliteConnection.ClearPool(c);' + "`r`n" + '            c.Close();' + "`r`n" + '            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");' + "`r`n" + '        }'
-          if(-not $text.Contains($old)){throw 'Legacy rejection pattern missing'}
-          Set-Content $novaStore ($text.Replace($old,$new)) -Encoding utf8
+          $ifLine='        if ((tables > 0 || version > 0) && application != 1279999574)'
+          $throwLine='            throw new InvalidOperationException("This is not an LK Nova database. Legacy files are never opened for migration.");'
+          if(-not $text.Contains($ifLine) -or -not $text.Contains($throwLine)){throw 'Legacy rejection pattern missing'}
+          $text=$text.Replace($ifLine,$ifLine + "`n" + '        {')
+          $replacement='            SqliteConnection.ClearPool(c);' + "`n" + '            c.Close();' + "`n" + $throwLine + "`n" + '        }'
+          $text=$text.Replace($throwLine,$replacement)
+          Set-Content $novaStore $text -Encoding utf8
 
           $store=Join-Path $env:NOVA_ROOT 'src/Nova.Data/PhysicalInventoryStore.cs'
           $text=Get-Content $store -Raw
